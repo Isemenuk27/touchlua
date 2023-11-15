@@ -66,24 +66,6 @@ local function TrajectoryPoint(h, a, v, x)
     return h + x * tan( a ) - g * ( (x * x) / ( 2 * (v * v) * (cosa * cosa) ) )
 end
 
---[[
-local drag_coefficient = 1.624
-local airDensity = 1.225
-local A = ( ( 7.62 * 7.62 ) * .1 ) * .001
-
-local function TrajectoryPointWithDrag(h, a, v, x)
-    local cosa = cos(a)
-    local vx = v * cosa -- Horizontal component of velocity
-    local vy = v * sin(a) -- Vertical component of velocity
-
-    local drag_force = 0.5 * airDensity * ( vx * vx ) * A * drag_coefficient
-
-    return h + x * tan(a) - (g * ( x * x ) ) / ( 2 * ( vx * vx ) * ( cosa * cosa ) ) - ( drag_force * ( x * x ) ) / (2 * ( v * v ) )
-end]]--
-
---TrajectoryPoint = TrajectoryPointWithDrag
-
-
 local mx, my = 0, 0
 local a = 0
 
