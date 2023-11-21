@@ -36,10 +36,10 @@ center.Think = function( self, pressed, hover )
 
     local ang = vec2atan( _temp )
 
-    vec3angdir( GetCamAng(), _FORWARD )
-    vec3angdirr( GetCamAng(), _RIGHT )
-    vec3mul( _FORWARD, _temp[2] )
-    vec3mul( _RIGHT, _temp[1] )
+    vec3set( _FORWARD, GetCamDir() )
+    vec3set( _RIGHT, CamRight() )
+    vec3mul( _FORWARD, -_temp[2] )
+    vec3mul( _RIGHT, _temp[1] * ( CamLefthanded() and 1 or -1 ) )
 
     local _OFFSET = vec3add( _FORWARD, _RIGHT )
 
@@ -78,6 +78,6 @@ end
 local Btn7 = GUI.AddElement( "rect", 0, 0, w, h * .6 )
 
 function Btn7:Moved( x, y )
-    vec2add( GetCamAng(), y * .001, -x * .001, 0 )
+    vec2add( GetCamAng(), y * .001, x * .001 * ( CamLefthanded() and -1 or 1 ), 0 )
 end
 
