@@ -19,7 +19,7 @@ local cos, sin, tan, max, min = math.cos, math.sin, math.tan, math.max, math.min
 local acos, asin, atan = math.acos, math.asin, math.atan
 local abs, floor, ceil, rad, deg = math.abs, math.floor, math.ceil, math.rad, math.deg
 FrameTime, CurTime, RealTime = 0, 0, sys.gettime
-local sqrt, random, pi = math.sqrt, math.random, math.pi
+local sqrt, random, pi, hpi = math.sqrt, math.random, math.pi, math.pi * .5
 
 local fillrect, text = draw.fillrect, draw.text
 local line, circle = draw.line, draw.circle
@@ -30,6 +30,7 @@ end
 
 require( "screen" )
 showscreen()
+require( "camera" )
 require( "render" )
 require( "buttons" )
 require( "objects" )
@@ -42,15 +43,8 @@ local obj = createclass( C_POLY )
 obj:born()
 obj.form = loadobj( "axis.obj" )
 obj.scl = vec3( 1/8 )
-obj.ang = vec3( 0, 0, pi )
---obj.pointmesh = true
-obj:setPos( vec3( 0 ) )
 
 local function Loop( CT, DT )
-    --vec3add( obj.ang, 0, DT, DT * math.cos( DT ) )
-    --vec3set( obj.scl, 1 + math.sin( CT ) * .2 )
-    --circle2( 20, red, vec3toscreen( vec3( 0, 0, 5) ) )
-
     text( round( 1 / DT, 2 ), 20, 20, red )
 end
 
@@ -65,6 +59,8 @@ while true do
         Loop( CurTime, FrameTime )
         GUI.Render()
         post()
+    else
+        exec( "firstframe" )
     end
 
     FrameTime = RealTime() - TimeStart
