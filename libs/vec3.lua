@@ -33,6 +33,7 @@ do
         if ( istable( x ) ) then
             return vec3set( v, x[1], x[2], x[3] )
         end
+
         v[1] = x
         v[2] = y or x
         v[3] = z or x
@@ -113,6 +114,19 @@ function vec3angdir( v, forward, right, up )
     if ( up ) then
         vec3set( up, (cr*sp*cy+-sr*-sy), cr*cp, (cr*sp*sy+-sr*cy) )
     end
+end
+
+function vec3angf( a, v )
+    if ( not v ) then
+        v = vec3()
+    end
+
+    local sp, cp, sy, cy, sr, cr
+    sp, cp = sin( a[1] ), cos( a[1] )
+    sy, cy = sin( a[2] ), cos( a[2] )
+    sr, cr = sin( a[3] ), cos( a[3] )
+
+    vec3set( v, sp, cy * cp, sy * cp )
 end
 
 function vec3angdirr( a, v )
