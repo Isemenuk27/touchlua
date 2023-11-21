@@ -145,7 +145,7 @@ end
 
 function mat4setTr( m, tr )
     for i = 0, 2 do
-        m[i][3] = tr[i+1]
+        m[3][i] = tr[i+1]
     end
 
     return m
@@ -153,7 +153,7 @@ end
 
 function mat4addTr( m, tr )
     for r = 0, 2 do
-        m[r][3] = m[r][3] + tr[r+1]
+        m[3][r] = m[3][r] + tr[r+1]
     end
 
     return m
@@ -209,9 +209,51 @@ function mat4mulvec( i, o, m )
     o[3] = i[1] * m[0][2] + i[2] * m[1][2] + i[3] * m[2][2] + m[3][2]
     o[4] = i[1] * m[0][3] + i[2] * m[1][3] + i[3] * m[2][3] + m[3][3]
 
-    if ( o[4] ~= 0.0 ) then
+    if ( o[4] ~= 0 ) then
         vec3div( o, o[4] )
     end
 
     return o
+end
+
+function mat4qinv( m, o )
+    if ( not o ) then
+        o = mat4()
+    end
+
+    o[0][0] = m[0][0]; o[0][1] = m[1][0]; o[0][2] = m[2][0]; o[0][3] = 0
+    o[1][0] = m[0][1]; o[1][1] = m[1][1]; o[1][2] = m[2][1]; o[1][3] = 0
+    o[2][0] = m[0][2]; o[2][1] = m[1][2]; o[2][2] = m[2][2]; o[2][3] = 0
+    o[3][0] = -(m[3][0] * o[0][0] + m[3][1] * o[1][0] + m[3][2] * o[2][0])
+    o[3][1] = -(m[3][0] * o[0][1] + m[3][1] * o[1][1] + m[3][2] * o[2][1])
+    o[3][2] = -(m[3][0] * o[0][2] + m[3][1] * o[1][2] + m[3][2] * o[2][2])
+    o[3][3] = 1
+
+    return o
+end
+
+do
+    local newForward, newRight, newUp, a = vec3(), vec3(), vec3(), vec3()
+
+    function mat4pointat( mat, pos, target, up )
+        vec3set( newForward, target )
+        vec3sub( newForward, pos )
+        vec3normalize( newForward )
+
+        vec3set( a, newForward )
+        vec3mul( a, vec3dot(up, newForward) )
+
+        vec3set( newUp, up )
+        vec3sub( newUp, a )
+        vec3normalize( newUp )
+
+        vec3cross( newUp, newForward, newRight )
+
+        mat4set( mat, newRight[1], newRight[2], newRight[3], 0,
+        newUp[1], newUp[2], newUp[3], 0,
+        newForward[1], newForward[2], newForward[3], 0,
+        pos[1], pos[2], pos[3], 1 )
+
+        return mat, newForward, newRight, newUp
+    end
 end
