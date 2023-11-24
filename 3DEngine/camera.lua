@@ -2,20 +2,26 @@ if ( not Inited ) then require( "init" ) return end
 
 local _CAM = {
     _PROJ = mat4(),
-    _POS = vec3( .6, 3, -5 ),
-    _ANG = vec3( math.pi * .2, math.pi, 0 ),
+    _POS = vec3( -1.561887, 76.775022, -154.045750 ), -- vec3( .6, 3, -5 ),
+    _ANG = vec3( math.pi * .22, math.pi * .982, 0 ),
     _DIR = vec3(),
     _SCL = vec3( 1, 1, 1 ),
-    _FAR = 100,
-    _NEAR = .01,
+    _FAR = 512,
+    _NEAR = 1,
     _FOV = math.rad( 70 ),
-    _LEFTHANDED = not true,
+    _LEFTHANDED = true,
     _ORTHO = not true,
-    _ORTHOSCALE = 4,
+    _ORTHOSCALE = 400,
     _NEARCULL = true,
     _F = vec3(),
     _R = vec3(),
-    _U = vec3()
+    _U = vec3(),
+    _FRUSTUM = nil,
+    _BACKFACECULL = true,
+    _SORTTRIS = true,
+    _MOVEMENTSCALE = 60,
+    _YMOVESCALE = 1.1,
+    _SMOOTHSHADE = true,
 }
 
 function CamAng( p, y, r )
@@ -70,6 +76,30 @@ function CamLefthanded()
     return _CAM._LEFTHANDED
 end
 
+function CamSort()
+    return _CAM._SORTTRIS
+end
+
+function CamFar()
+    return _CAM._FAR
+end
+
+function CamBackfaceCull()
+    return _CAM._BACKFACECULL
+end
+
+function CamMoveScale()
+    return _CAM._MOVEMENTSCALE
+end
+
+function CamYMoveScale()
+    return _CAM._MOVEMENTSCALE * _CAM._YMOVESCALE
+end
+
+function CamSmoothShade()
+    return _CAM._SMOOTHSHADE
+end
+
 function Cam( off, ang, scl )
     if ( off ) then
         CamPos( off[1], off[2], off[3] )
@@ -97,6 +127,8 @@ function mat4perspective(fov, aspect, zn, zf, mat)
     mat[3][2] = (-zf * zn) * oneOverDepth
     mat[2][3] = 1
     mat[3][3] = 0
+
+    _CAM._FRUSTUM = buildFrustum( fov, aspect, zn, zf )
 end
 
 function mat4ortho( w, h, zn, zf, mat )
