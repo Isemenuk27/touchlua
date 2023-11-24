@@ -139,6 +139,12 @@ function vec3angdirr( a, v )
     vec3set( v, cp*sy, -sp, cp*cy )
 end
 
+function vec3toang( v, o )
+    o[1] = math.atan(v[2], v[3])
+    o[2] = math.atan(v[1], v[3])
+    o[3] = math.atan(v[2], v[1])
+    return o
+end
 
 function vec3diff( v1, v2, v3 )
     local dx = v2[1] - v1[1]
@@ -204,6 +210,8 @@ function vec3inverse( v )
     v[3] = -v[3]
     return v
 end
+
+vec3negate = vec3inverse
 
 function vec3dot( v1, v2 )
     return v1[1] * v2[1] + v1[2] * v2[2] + v1[3] * v2[3]
