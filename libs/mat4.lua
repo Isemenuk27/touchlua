@@ -1,5 +1,6 @@
 local cos, sin, tan = math.cos, math.sin, math.tan
 local vec3add, vec3set, vec3mul, vec3dot = vec3add, vec3set, vec3mul, vec3dot
+local istable = istable
 
 function mat4( a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p )
     if ( istable( a ) ) then
@@ -216,6 +217,19 @@ function mat4mulvec( i, o, m )
     return o
 end
 
+function mat4mulvecnotr( i, o, m )
+    o[1] = i[1] * m[0][0] + i[2] * m[1][0] + i[3] * m[2][0]
+    o[2] = i[1] * m[0][1] + i[2] * m[1][1] + i[3] * m[2][1]
+    o[3] = i[1] * m[0][2] + i[2] * m[1][2] + i[3] * m[2][2]
+    o[4] = i[1] * m[0][3] + i[2] * m[1][3] + i[3] * m[2][3] + 1
+
+    if ( o[4] ~= 0 ) then
+        vec3div( o, o[4] )
+    end
+
+    return o
+end
+
 function mat4qinv( m, o )
     if ( not o ) then
         o = mat4()
@@ -232,6 +246,28 @@ function mat4qinv( m, o )
     return o
 end
 
+do
+    local _X, _Y, _Z, _MAT, _R = mat4(), mat4(), mat4(), mat4(), mat4()
+    local vec3origin = vec3( 1 )
+
+    function mat4toworld( wpos, wang, lpos, out )
+        mat4identity( _R )
+
+        mat4setSc( _R, vec3origin )
+
+        mat4yrot( _Y, wang[2] )
+        mat4xrot( _X, wang[1] )
+        mat4zrot( _Z, wang[3] )
+
+        mat4mul( _R, _Y, _MAT )
+        mat4mul( _MAT, _Z, _R )
+        mat4mul( _R, _X, _MAT )
+
+        mat4setTr( _MAT, wpos )
+
+        mat4mulvec( lpos, out, _MAT )
+    end
+end
 do
     local newForward, newRight, newUp, a = vec3(), vec3(), vec3(), vec3()
 
