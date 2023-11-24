@@ -14,7 +14,7 @@ local hw, hh = HScr()
 local padx, pady = hw * .5, h - hh * .5
 local padbs = padx * .8
 local pad = padx * .1
-local maxdist = w * .08
+local maxdist = w * .2
 local _pos, _dir, _temp, _mid = vec2(), vec2(), vec2(), vec2()
 local _FORWARD, _RIGHT = vec3(), vec3()
 
@@ -46,6 +46,7 @@ center.Think = function( self, pressed, hover )
     vec3normalize( _OFFSET )
 
     vec3mul( _OFFSET, FrameTime )
+    vec3mul( _OFFSET, CamMoveScale() )
 
     vec3add( GetCamPos(), _OFFSET )
 
@@ -63,7 +64,7 @@ local Btn3 = GUI.AddElement( "rect", w * .5, h * .75, w * .2, w * .2 )
 function Btn3:Think( pressed )
     text( "y+", self.x + self.w * .5, self.y + self.h * .5, white )
     if ( not pressed ) then return end
-    vec3add( GetCamPos(), 0, FrameTime, 0 )
+    vec3add( GetCamPos(), 0, CamYMoveScale() * FrameTime, 0 )
 end
 
 local Btn4 = GUI.AddElement( "rect", w * .5, h * .88, w * .2, w * .2 )
@@ -72,12 +73,20 @@ function Btn4:Think( pressed )
     text( "y-", self.x + self.w * .5, self.y + self.h * .5, white )
     if ( not pressed ) then return end
 
-    vec3add( GetCamPos(), 0, -FrameTime, 0 )
+    vec3add( GetCamPos(), 0, -FrameTime * CamYMoveScale(), 0 )
 end
 
 local Btn7 = GUI.AddElement( "rect", 0, 0, w, h * .6 )
 
 function Btn7:Moved( x, y )
-    vec2add( GetCamAng(), y * .001, x * .001 * ( CamLefthanded() and -1 or 1 ), 0 )
+    local ang = GetCamAng()
+    local yaw = ang[2] + ( x * .001 * ( CamLefthanded() and -1 or 1 ) )
+    local pitch = ang[1] + ( y * .001 )
+
+    yaw = yaw % ( math.pi * 2 )
+
+    pitch = clamp( pitch, -1.54, 1.54 )
+
+    vec3set( ang, pitch, yaw, ang[3] )
 end
 
