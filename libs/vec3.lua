@@ -177,6 +177,11 @@ function vec3dirto( v1, v2 )
     return vec3normal( __DistDiffVec )
 end
 
+function vec3diffto( v1, v2 )
+    vec3diff( v1, v2, __DistDiffVec )
+    return __DistDiffVec
+end
+
 do
     local _A, _B, N = vec3(), vec3(), vec3()
 
