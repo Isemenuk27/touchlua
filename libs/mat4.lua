@@ -292,4 +292,22 @@ do
 
         return mat, newForward, newRight, newUp
     end
+
+    function mat4pointto( mat, pos, dir, up )
+        vec3set( a, dir )
+        vec3mul( a, vec3dot(up, dir) )
+
+        vec3set( newUp, up )
+        vec3sub( newUp, a )
+        vec3normalize( newUp )
+
+        vec3cross( newUp, dir, newRight )
+
+        mat4set( mat, newRight[1], newRight[2], newRight[3], 0,
+        newUp[1], newUp[2], newUp[3], 0,
+        dir[1], dir[2], dir[3], 0,
+        pos[1], pos[2], pos[3], 1 )
+
+        return mat, dir, newRight, newUp
+    end
 end
