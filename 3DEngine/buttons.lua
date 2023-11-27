@@ -38,8 +38,8 @@ center.Think = function( self, pressed, hover )
 
     vec3set( _FORWARD, GetCamDir() )
     vec3set( _RIGHT, CamRight() )
-    vec3mul( _FORWARD, -_temp[2] )
-    vec3mul( _RIGHT, _temp[1] * ( CamLefthanded() and 1 or -1 ) )
+    vec3mul( _FORWARD, _temp[2] )
+    vec3mul( _RIGHT, _temp[1] * ( CamLefthanded() and -1 or 1 ) )
 
     local _OFFSET = vec3add( _FORWARD, _RIGHT )
 
@@ -81,7 +81,7 @@ local Btn7 = GUI.AddElement( "rect", 0, 0, w, h * .6 )
 function Btn7:Moved( x, y )
     local ang = GetCamAng()
     local yaw = ang[2] + ( x * .001 * ( CamLefthanded() and -1 or 1 ) )
-    local pitch = ang[1] + ( y * .001 )
+    local pitch = ang[1] - ( y * .001 )
 
     yaw = yaw % ( math.pi * 2 )
 
