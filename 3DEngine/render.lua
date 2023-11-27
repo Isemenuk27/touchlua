@@ -1,7 +1,7 @@
 if ( not Inited ) then require( "init" ) return end
 
 local _PRECOMPUTENORMALS = false
-
+local _PRECOMPUTETRIORIGIN = false
 --*******************
 -- Localize variables
 
@@ -26,6 +26,28 @@ local triangle, filltriangle, white = draw.triangle, draw.filltriangle, draw.whi
 local GetCamPos, GetCamScl, GetCamDir, GetCamAng, GetCamProj = GetCamPos, GetCamScl, GetCamDir, GetCamAng, GetCamProj
 
 local s_RENDER = stack()
+local computeLighting --function
+
+--*******************
+-- Detect if triangle behind, infront or intersects plane
+
+local function planeTriangles( t_points, pos, normal )
+    local c = 0
+
+    for i = 1, 3 do
+        local diff = vec3diffto( t_points[i], pos )
+        local dot = vec3dot( normal, diff )
+
+        --[[local x, y = vec3toscreen( t_points[i] )
+        draw.text( dot, x, y, draw.white ) ]]--
+
+        if ( dot > 0 ) then
+            c = c + 1
+        end
+    end
+
+    return c == 3
+end
 
 --*******************
 -- Vertex struct
@@ -56,7 +78,7 @@ function face( p1, p2, p3 )
 
     local tr = {
         v1 = vec3(), v2 = vec3(), v3 = vec3(),
-        nr = vec3(), og = vec3(), col = { 1, 1, 1, 1 }
+        nr = vec3(), og = vec3(), col = { 0, 0, 0 }
     }
 
     return { verts = { p1, p2, p3 }, origin = _O, normal = _N, tr = tr }
@@ -73,8 +95,10 @@ local function toscreen( vec )
     vec3add( v_PV, 1, 1, 0 )
     vec3mul( v_PV, HScrW(), HScrH(), 1 )
 
-    return v_PV[1], v_PV[2], v_PV[3]
+    return v_PV[1], ScrH() - v_PV[2], v_PV[3]
 end
+
+vec3toscreen = toscreen
 
 --*******************
 -- Cull and clip, then push them to render stack
@@ -123,6 +147,15 @@ local function pushtorender( obj )
             mat4mulvec( t_verts[j], t_transformed[j], m_OBJMAT )
         end
 
+        do
+            local c1 = planeTriangles( t_transformed, CamFrustum().far[1], CamFrustum().far[2] )
+            local c2 = planeTriangles( t_transformed, CamFrustum().near[1], CamFrustum().near[2] )
+
+            if ( c1 or c2 ) then
+                goto skipface
+            end
+        end
+
         if ( not _PRECOMPUTENORMALS ) then
             vec3sub( vec3set( _BA, t_transformed[2] ), t_transformed[1] )
             vec3sub( vec3set( _CA, t_transformed[3] ), t_transformed[1] )
@@ -141,7 +174,14 @@ local function pushtorender( obj )
         --vec3normalize( v_CamToTri )
         --local dot = -vec3dot( v_normal, v_CamToTri )
 
-        mat4mulvec( face.origin, v_origin, m_OBJMAT )
+        if ( _PRECOMPUTETRIORIGIN ) then
+            mat4mulvec( face.origin, v_origin, m_OBJMAT )
+        else
+            vec3set( v_origin, t_transformed[1] )
+            vec3add( v_origin, t_transformed[2] )
+            vec3add( v_origin, t_transformed[3] )
+            vec3mul( v_origin, 1/3 )
+        end
 
         -- Write transformed vectors in stack
 
@@ -150,7 +190,8 @@ local function pushtorender( obj )
         vec3set( face.tr.v3, t_transformed[3] )
         vec3set( face.tr.nr, v_normal )
         vec3set( face.tr.og, v_origin )
-        --vec3set( face.tr.col, dot )
+
+        computeLighting( face.tr )
 
         push( s_RENDER, face.tr )
 
@@ -158,21 +199,56 @@ local function pushtorender( obj )
     end
 end
 
-local function sortFaces()
+local _TEMPFACECOL = vec3()
+
+computeLighting = function( face )
+    --vec3set( face.col, 0 )
+
+    local dot = vec3dot( face.nr, _SUN.dir )
+
+    vec3set( face.col, _SUN.diff )
+    vec3mul( face.col, ( dot + 1 ) * .5 )
+    vec3add( face.col, _SUN.ambient )
+
+    for _, light in ipairs( _LIGHTS ) do
+        GetPointLight( light, face.og, face.nr, _TEMPFACECOL )
+        vec3add( face.col, _TEMPFACECOL )
+    end
 
 end
 
+local sortFaces
+
+do
+    local tablesort, vec3distsqr = table.sort, vec3distsqr
+    local CamPos
+
+    local function compareDist( a, b )
+        return vec3distsqr( CamPos, a.og ) < vec3distsqr( CamPos, b.og )
+    end
+
+    sortFaces = function()
+        CamPos = GetCamPos()
+        tablesort( s_RENDER, compareDist )
+    end
+end
 --*******************
 -- Render stack
+
+local t_Drawcol = { 0, 0, 0, 1 }
 
 local function renderFaces()
     while ( #s_RENDER > 0 ) do
         local face = pop( s_RENDER )
+
         local x1, y1, z1 = toscreen( face.v1 )
         local x2, y2, z2 = toscreen( face.v2 )
         local x3, y3, z3 = toscreen( face.v3 )
 
-        triangle( x1, y1, x2, y2, x3, y3, face.col )
+        vec3set( t_Drawcol, face.col )
+        clamp01( t_Drawcol )
+
+        filltriangle( x1, y1, x2, y2, x3, y3, t_Drawcol )
     end
 end
 
@@ -182,6 +258,8 @@ end
 local UP, TARGET = vec3( 0, 1, 0 ), vec3( 0, 0, 1 )
 
 function render()
+    updateFrustum()
+
     vec3set( UP, 0, 1, 0 )
     vec3set( TARGET, 0, 0, 1 ) -- Reset directions
 
@@ -203,12 +281,12 @@ function render()
     mat4mul( m_VIEW, m_X, m_MAT ) -- Rotations
 
     mat4mulvec( TARGET, GetCamDir(), m_MAT )
-    vec3add( vec3set( TARGET, GetCamPos() ), GetCamDir() )
+    --vec3add( vec3set( TARGET, GetCamPos() ), GetCamDir() )
 
     mat4identity( m_MAT )
 
     -- Point at marix, transformations handled here
-    local _, F, R, U = mat4pointat( m_MAT, GetCamPos(), TARGET, UP )
+    local _, F, R, U = mat4pointto( m_MAT, GetCamPos(), GetCamDir(), UP )
 
     -- Directions of camera
 
