@@ -46,31 +46,37 @@ require( "meshload" )
 local w, h = Scr()
 local hw, hh = HScr()
 
-local obj = createclass( C_POLY )
-obj:born()
-obj.form = loadobj( "axis.obj" )
-obj.scl = vec3( 1 )
+do
+    local obj = createclass( C_POLY )
+    obj:born()
+    obj.form = loadobj( "axis.obj" )
+    obj.scl = vec3( 1/2 )
+end
 
 local lamp = createclass( C_LIGHT )
 lamp:born()
 lamp:enable()
-lamp.power = 20000
+lamp.power = 200
 lamp:setPos( vec3( 0, 20, -130 ) )
 lamp:setDir( vec3normalize( vec3( -0.015374, 0.928981, -0.369808 ) ) )
-lamp.diffuse = vec3mul( vec3( 255, 0, 0 ), 1 / 255 )
+lamp.diffuse = vec3mul( vec3( 0, 255, 0 ), 1 / 255 )
 
-_SUN = createclass( C_LIGHT )
-_SUN:born()
-_SUN:setDir( vec3normalize( vec3( -0.015374, 0.928981, -0.369808 ) ) )
+do
+    _SUN = createclass( C_LIGHT )
+    _SUN:born()
+    _SUN:setDir( vec3normalize( vec3( -0.015374, 0.928981, -0.369808 ) ) )
 
-local _SunColor = vec3( 85, 124, 173 )
-vec3mul( _SunColor, 1 / 255 )
+    local _SunColor = vec3( 85, 124, 173 )
+    vec3mul( _SunColor, 1 / 255 )
 
-local _AmbientColor = vec3( 248, 212, 171 )
-vec3mul( _AmbientColor, 1 / 255 )
-vec3mul( _AmbientColor, 1 )
+    local _AmbientColor = vec3( 248, 212, 171 )
+    vec3mul( _AmbientColor, 1 / 255 )
+    vec3mul( _AmbientColor, 1 )
 
-_SUN:setColor( _SunColor, _AmbientColor )
+    _SUN:setColor( _SunColor, _AmbientColor )
+    _SUN:setColor( vec3(0.2), vec3(0.01) )
+
+end
 
 local function smooth( x )
     return  0.5 * (1 - cos( 2 * pi * x) )
@@ -124,6 +130,10 @@ local function drawsky()
 end
 
 local function Loop( CT, DT )
+    vec3set( lamp.pos, cos( CurTime ) * 17,0, sin( CurTime ) * 17 )
+    local x, y = vec3toscreen( lamp.pos )
+
+    circle( x, y, 10, white )
     --draw.plane( vec3(0), vec3( 0, .1 * CT, 0), 2, 3, red )
     text( string.NiceSize( memused() ), w - 130, 20, red )
     text( string.NiceSize( FrameMem ), w - 130, 50, red )
@@ -131,6 +141,8 @@ local function Loop( CT, DT )
     text( round( 1 / DT, 2 ), 20, 20, red )
     text( vec3tostring( GetCamPos() ), 20, 60, white )
     text( vec3tostring( GetCamDir() ), 20, 100, white )
+    text( vec3tostring( GetCamAng() ), 20, 140, white )
+
 end
 
 while true do
