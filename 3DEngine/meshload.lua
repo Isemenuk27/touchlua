@@ -31,6 +31,13 @@ local function constructFace( a )
         local p3 = vertexbuffer[tn(a[4])]
 
         insert( form, face( p1, p2, p3 ) )
+
+        if ( a[5] ) then
+            local p1 = vertexbuffer[tn(a[4])]
+            local p2 = vertexbuffer[tn(a[5])]
+            local p3 = vertexbuffer[tn(a[2])]
+            insert( form, face( p1, p2, p3 ) )
+        end
     else
         local pf1 = string.Split( a[2], "/" )
         local pf2 = string.Split( a[3], "/" )
@@ -41,6 +48,14 @@ local function constructFace( a )
         local p3 = vertexbuffer[tn(pf3[1])]
 
         insert( form, face( p1, p2, p3 ) )
+
+        if ( a[5] ) then
+            local pf4 = string.Split( a[5], "/" )
+            local p1 = vertexbuffer[tn(pf3[1])]
+            local p2 = vertexbuffer[tn(pf4[1])]
+            local p3 = vertexbuffer[tn(pf1[1])]
+            insert( form, face( p1, p2, p3 ) )
+        end
     end
 end
 
@@ -70,88 +85,3 @@ function loadobj( name )
 
     return form
 end
-
---[[
-              ( -1, 1, 1 ) ---------------- (1, 1, 1 )
-                         / |             /|
-                        /  |    ↑       / |
-                       /   |    Y+     /  |
-                      /    |          /   |
-                     /     |         /    |
-      ( -1, 1, -1 ) ----------------/  ( 1, 1, -1 )
-                    |      |       |      |
-                    |      |    NR |      |
-             ( -1, -1, 1 ) --------|------- ( 1, -1, 1
-                    |     /        |     /
-                WS  |    /         |    /  EA
-                    |   /     Y-   |   /
-                    |  /      ↓    |  /
-                    | /            | /
-                    |/             |/
-     ( -1, -1, -1 ) ---------------- ( 1, -1, -1 )
-                           ST
-]]--
-
-_CUBE = {
-    vec3( 1, -1, -1 ),
-    vec3( -1, -1, -1 ),
-    vec3( -1, -1, 1 ),
-
-    vec3( 1, -1, -1 ),
-    vec3( -1, -1, 1 ),
-    vec3( 1, -1, 1 ), -- Y-
-
-    vec3( -1, 1, -1 ),
-    vec3( -1, 1, 1 ),
-    vec3( 1, 1, 1 ),
-
-    vec3( -1, 1, -1 ),
-    vec3( 1, 1, 1 ),
-    vec3( 1, 1, -1 ), --Y+
-
-    vec3( -1, -1, -1 ),
-    vec3( -1, 1, -1 ),
-    vec3( 1, 1, -1 ),
-
-    vec3( -1, -1, -1 ),
-    vec3( 1, 1, -1 ),
-    vec3( 1, -1, -1 ), --South
-
-    vec3( 1, -1, 1 ),
-    vec3( -1, -1, 1 ),
-    vec3( -1, 1, 1 ),
-
-    vec3( 1, -1, 1 ),
-    vec3( -1, 1, 1 ),
-    vec3( 1, 1, 1 ), --North
-
-    vec3( 1, -1, -1 ),
-    vec3( 1, 1, -1 ),
-    vec3( 1, 1, 1 ),
-
-    vec3( 1, -1, -1 ),
-    vec3( 1, 1, 1 ),
-    vec3( 1, -1, 1 ), -- East
-
-    vec3( -1, -1, 1 ),
-    vec3( -1, 1, 1 ),
-    vec3( -1, 1, -1 ),
-
-    vec3( -1, -1, 1 ),
-    vec3( -1, 1, -1 ),
-    vec3( -1, -1, -1 ), --West
-}
-
-_PLANE = {
-    vec3( 1, -1, 0 ),
-    vec3( -1, -1, 0 ),
-    vec3( -1, 1, 0 ),
-
-    vec3( 1, -1, 0 ),
-    vec3( -1, 1, 0 ),
-    vec3( 1, 1, 0 ),
-
-    vec3( 0, 1, 0 ),
-    vec3( 0, 0, 1 ),
-    vec3( 0, -1, 0 ),
-}
