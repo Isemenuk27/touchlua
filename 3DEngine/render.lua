@@ -22,10 +22,15 @@ local v_VTEX, v_VTEXTR = vec3(), vec3()
 --Draw
 local triangle, filltriangle, white = draw.triangle, draw.filltriangle, draw.white
 
+local function r_circle( pos, r, c )
+    local x, y = vec3toscreen( pos )
+    draw.circle( x, y, r, c or white )
+end
+
 --Camera functions
 local GetCamPos, GetCamScl, GetCamDir, GetCamAng, GetCamProj = GetCamPos, GetCamScl, GetCamDir, GetCamAng, GetCamProj
 
-local s_RENDER = stack()
+local s_RENDER, _Frustum = stack(), nil
 local computeLighting --function
 
 --*******************
@@ -46,7 +51,43 @@ local function planeTriangles( t_points, pos, normal )
         end
     end
 
-    return c == 3
+    return ( c == 3 and -1 ) or ( c > 0 and 1 ) or 0
+end
+
+local planeTrianglePoints
+
+do
+    local _U, _V, _W0, _Temp, P1, P2 = vec3(), vec3(), vec3(), vec3(), vec3(), vec3()
+
+    planeTrianglePoints = function( q, n, tri )
+        vec3diff( tri[1], tri[2], _U )
+        vec3diff( tri[1], tri[3], _V )
+        vec3diff( q, tri[1], _W0 )
+
+        local a = -vec3dot( n, _W0 )
+        local b = vec3dot( n, _U )
+        local c = vec3dot( n, _V )
+
+        local scaleFactor = a / ( a + b + c )
+
+        vec3set( P1, _U )
+        vec3mul( P1, scaleFactor )
+        vec3set( _Temp, _V )
+        vec3mul( _Temp, scaleFactor )
+        vec3add( P1, _Temp )
+        vec3add( P1, tri[1] )
+
+        scaleFactor = -a / (b + c)
+
+        vec3set( P2, _U )
+        vec3mul( P2, scaleFactor )
+        vec3set( _Temp, _V )
+        vec3mul( _Temp, scaleFactor )
+        vec3add( P2, _Temp )
+        vec3add( P2, tri[1] )
+
+        return P1, P2
+    end
 end
 
 --*******************
@@ -60,6 +101,13 @@ end
 -- Face struct
 
 local _BA, _CA, _N, _O = vec3(), vec3(), vec3(), vec3()
+
+local function triStruct( v1, v2, v3, normal, origin, color )
+    return {
+        v1 = vec3( v1 ), v2 = vec3( v2 ), v3 = vec3( v3 ),
+        nr = vec3( normal ), og = vec3( origin ), col = vec3( color )
+    }
+end
 
 function face( p1, p2, p3 )
     if ( _PRECOMPUTENORMALS ) then
@@ -76,12 +124,7 @@ function face( p1, p2, p3 )
     vec3add( _O, p3 )
     vec3mul( _O, 1 / 3 ) --Mid point
 
-    local tr = {
-        v1 = vec3(), v2 = vec3(), v3 = vec3(),
-        nr = vec3(), og = vec3(), col = { 0, 0, 0 }
-    }
-
-    return { verts = { p1, p2, p3 }, origin = _O, normal = _N, tr = tr }
+    return { verts = { p1, p2, p3 }, origin = _O, normal = _N, tr = triStruct() }
 end
 
 --*******************
@@ -103,59 +146,17 @@ vec3toscreen = toscreen
 --*******************
 -- Cull and clip, then push them to render stack
 
-local t_transformed = { vec3(), vec3(), vec3() }
--- List of 3 transformed vertecies
-local v_normal = vec3() -- rotated normal
-local v_origin = vec3()
-local v_CamToTri = vec3()
+local pushtorender, pushAndCalcTri
 
-local function pushtorender( obj )
-    local v_OAng = obj.ang
-    local v_OPos = obj.pos
-    local v_OScl = obj.scl
+do
+    local t_transformed = { vec3(), vec3(), vec3() }
+    -- List of 3 transformed vertecies
+    local v_normal = vec3() -- rotated normal
+    local v_origin = vec3()
+    local v_CamToTri = vec3()
+    local v_CamPos
 
-    mat4identity( m_OBJMAT )
-
-    mat4setSc( m_OBJMAT, v_OScl ) --Scale
-
-    -- Rotation
-
-    mat4zrot( m_Z, v_OAng[3] ) -- Roll
-    mat4yrot( m_Y, v_OAng[2] ) -- Yaw
-    mat4xrot( m_X, v_OAng[1] ) -- Pitch
-
-    mat4set( m_MAT, m_OBJMAT )
-
-    mat4mul( m_MAT, m_Z, m_OBJMAT )
-    mat4mul( m_OBJMAT, m_X, m_MAT )
-    mat4mul( m_MAT, m_Y, m_OBJMAT ) -- Rotations
-
-    mat4setTr( m_OBJMAT, v_OPos )
-
-    --Loop though all object faces
-
-    local v_CamPos = GetCamPos()
-
-    for faceid = 1, #obj.form do
-        local face = obj.form[faceid]
-        local t_verts = face.verts
-
-        --mat4mulvecnotr( face.normal, v_normal, m_OBJMAT )
-        --vec3normalize( v_normal )
-
-        for j = 1, 3 do
-            mat4mulvec( t_verts[j], t_transformed[j], m_OBJMAT )
-        end
-
-        do
-            local c1 = planeTriangles( t_transformed, CamFrustum().far[1], CamFrustum().far[2] )
-            local c2 = planeTriangles( t_transformed, CamFrustum().near[1], CamFrustum().near[2] )
-
-            if ( c1 or c2 ) then
-                goto skipface
-            end
-        end
-
+    pushAndCalcTri = function( t_tristruct, t_transformed )
         if ( not _PRECOMPUTENORMALS ) then
             vec3sub( vec3set( _BA, t_transformed[2] ), t_transformed[1] )
             vec3sub( vec3set( _CA, t_transformed[3] ), t_transformed[1] )
@@ -166,55 +167,107 @@ local function pushtorender( obj )
         vec3sub( v_CamToTri, v_CamPos )
 
         if ( vec3dot( v_normal, v_CamToTri ) > 0 ) then
-            goto skipface
+            return --goto skipface
         end
 
         vec3normalize( v_normal )
 
-        --vec3normalize( v_CamToTri )
-        --local dot = -vec3dot( v_normal, v_CamToTri )
-
         if ( _PRECOMPUTETRIORIGIN ) then
-            mat4mulvec( face.origin, v_origin, m_OBJMAT )
+            mat4mulvec( t_tristruct.og, v_origin, m_OBJMAT )
         else
             vec3set( v_origin, t_transformed[1] )
             vec3add( v_origin, t_transformed[2] )
             vec3add( v_origin, t_transformed[3] )
             vec3mul( v_origin, 1/3 )
+            vec3set( t_tristruct.og, v_origin )
         end
 
         -- Write transformed vectors in stack
 
-        vec3set( face.tr.v1, t_transformed[1] )
-        vec3set( face.tr.v2, t_transformed[2] )
-        vec3set( face.tr.v3, t_transformed[3] )
-        vec3set( face.tr.nr, v_normal )
-        vec3set( face.tr.og, v_origin )
+        vec3set( t_tristruct.v1, t_transformed[1] )
+        vec3set( t_tristruct.v2, t_transformed[2] )
+        vec3set( t_tristruct.v3, t_transformed[3] )
+        vec3set( t_tristruct.nr, v_normal )
 
-        computeLighting( face.tr )
+        computeLighting( t_tristruct )
 
-        push( s_RENDER, face.tr )
+        push( s_RENDER, t_tristruct )
+    end
 
-        ::skipface::
+    pushtorender = function( obj )
+        local v_OAng = obj.ang
+        local v_OPos = obj.pos
+        local v_OScl = obj.scl
+
+        mat4identity( m_OBJMAT )
+
+        mat4setSc( m_OBJMAT, v_OScl ) --Scale
+
+        -- Rotation
+
+        mat4zrot( m_Z, v_OAng[3] ) -- Roll
+        mat4yrot( m_Y, v_OAng[2] ) -- Yaw
+        mat4xrot( m_X, v_OAng[1] ) -- Pitch
+
+        mat4set( m_MAT, m_OBJMAT )
+
+        mat4mul( m_MAT, m_Z, m_OBJMAT )
+        mat4mul( m_OBJMAT, m_X, m_MAT )
+        mat4mul( m_MAT, m_Y, m_OBJMAT ) -- Rotations
+
+        mat4setTr( m_OBJMAT, v_OPos )
+
+        --Loop though all object faces
+
+        v_CamPos = GetCamPos()
+
+        for faceid = 1, #obj.form do
+            local face = obj.form[faceid]
+            local t_verts = face.verts
+
+            for j = 1, 3 do
+                mat4mulvec( t_verts[j], t_transformed[j], m_OBJMAT )
+            end
+
+            do
+                local c1 = planeTriangles( t_transformed, _Frustum.far[1], _Frustum.far[2] )
+
+                if ( c1 == -1 ) then
+                    goto skipface
+                    --elseif ( c1 == 1 ) then
+                    --local P1, P2 = planeTrianglePoints( _Frustum.far[1], _Frustum.far[2], t_transformed )
+                    --r_circle( P1, 20 )
+                end
+
+                local c2 = planeTriangles( t_transformed, _Frustum.near[1], _Frustum.near[2] )
+
+                if ( c2 == -1 ) then
+                    goto skipface
+                end
+            end
+
+            pushAndCalcTri( face.tr, t_transformed )
+
+            ::skipface::
+        end
     end
 end
 
-local _TEMPFACECOL = vec3()
+do
+    local _TEMPFACECOL = vec3()
 
-computeLighting = function( face )
-    --vec3set( face.col, 0 )
+    computeLighting = function( face )
+        local dot = vec3dot( face.nr, _SUN.dir )
 
-    local dot = vec3dot( face.nr, _SUN.dir )
+        vec3set( face.col, _SUN.diff )
+        vec3mul( face.col, ( dot + 1 ) * .5 )
+        vec3add( face.col, _SUN.ambient )
 
-    vec3set( face.col, _SUN.diff )
-    vec3mul( face.col, ( dot + 1 ) * .5 )
-    vec3add( face.col, _SUN.ambient )
-
-    for _, light in ipairs( _LIGHTS ) do
-        GetPointLight( light, face.og, face.nr, _TEMPFACECOL )
-        vec3add( face.col, _TEMPFACECOL )
+        for _, light in ipairs( _LIGHTS ) do
+            GetPointLight( light, face.og, face.nr, _TEMPFACECOL )
+            vec3add( face.col, _TEMPFACECOL )
+        end
     end
-
 end
 
 local sortFaces
@@ -258,6 +311,7 @@ end
 local UP, TARGET = vec3( 0, 1, 0 ), vec3( 0, 0, 1 )
 
 function render()
+    _Frustum = CamFrustum()
     updateFrustum()
 
     vec3set( UP, 0, 1, 0 )
