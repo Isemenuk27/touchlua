@@ -18,9 +18,10 @@ local m_ROT, m_VTX = mat4(), mat4()
 local m_X, m_Y, m_Z = mat4(), mat4(), mat4()
 local v_OBJPOS, v_OBJANG, v_OBJSCL, v_CAMDIR = vec3(), vec3( 0, 0, 0 ), vec3( 1 ), vec3()
 local v_VTEX, v_VTEXTR = vec3(), vec3()
+local v_CamPos
 
 --Draw
-local triangle, filltriangle, white = draw.triangle, draw.filltriangle, draw.white
+local triangle, filltriangle, white, text = draw.triangle, draw.filltriangle, draw.white, draw.text
 
 local function r_circle( pos, r, c )
     local x, y = vec3toscreen( pos )
@@ -31,7 +32,8 @@ end
 local GetCamPos, GetCamScl, GetCamDir, GetCamAng, GetCamProj = GetCamPos, GetCamScl, GetCamDir, GetCamAng, GetCamProj
 
 local s_RENDER, _Frustum = stack(), nil
-local computeLighting --function
+local computeLighting, triStructsimple --function
+local calcOrigin, pushtorender, pushAndCalcTri, pushAndCalcTriRaw, calcNormal
 
 --*******************
 -- Detect if triangle behind, infront or intersects plane
@@ -43,9 +45,6 @@ local function planeTriangles( t_points, pos, normal )
         local diff = vec3diffto( t_points[i], pos )
         local dot = vec3dot( normal, diff )
 
-        --[[local x, y = vec3toscreen( t_points[i] )
-        draw.text( dot, x, y, draw.white ) ]]--
-
         if ( dot > 0 ) then
             c = c + 1
         end
@@ -55,38 +54,94 @@ local function planeTriangles( t_points, pos, normal )
 end
 
 local planeTrianglePoints
+local planeRay
 
 do
-    local _U, _V, _W0, _Temp, P1, P2 = vec3(), vec3(), vec3(), vec3(), vec3(), vec3()
+    local _V1, _V2 = vec3(), vec3()
+
+    planeRay = function( q, n, p1, p2, out )
+        vec3set( _V1, p1 )
+        vec3sub( _V1, q )
+
+        vec3set( _V2, p2 )
+        vec3sub( _V2, q )
+
+        local d1 = vec3dot( n, _V1 )
+        local d2 = vec3dot( n, _V2 )
+
+        if ( sign( d1 ) == sign( d2 ) ) then
+            return false
+        end
+
+        local t = d1 / ( d2 - d1 )
+
+        vec3set( out, p2 )
+        vec3sub( out, p1 )
+        vec3mul( out, -t )
+        vec3add( out, p1 )
+
+        return true, out
+    end
+end
+do
+    local t_Points, t_hit = { vec3(), vec3(), vec3() }, { false, false, false }
+    local insert = table.insert
 
     planeTrianglePoints = function( q, n, tri )
-        vec3diff( tri[1], tri[2], _U )
-        vec3diff( tri[1], tri[3], _V )
-        vec3diff( q, tri[1], _W0 )
+        t_hit[1] = planeRay( q, n, tri[1], tri[2], t_Points[1] )
+        t_hit[2] = planeRay( q, n, tri[2], tri[3], t_Points[2] )
+        t_hit[3] = planeRay( q, n, tri[3], tri[1], t_Points[3] )
 
-        local a = -vec3dot( n, _W0 )
-        local b = vec3dot( n, _U )
-        local c = vec3dot( n, _V )
+        local inside, outside = {}, {}
 
-        local scaleFactor = a / ( a + b + c )
+        for i = 1, 3 do
+            local diff = vec3diffto( tri[i], q )
 
-        vec3set( P1, _U )
-        vec3mul( P1, scaleFactor )
-        vec3set( _Temp, _V )
-        vec3mul( _Temp, scaleFactor )
-        vec3add( P1, _Temp )
-        vec3add( P1, tri[1] )
+            local dot = vec3dot( n, diff )
 
-        scaleFactor = -a / (b + c)
+            if ( dot > 0 ) then
+                insert( outside, tri[i] )
+            else
+                insert( inside, tri[i] )
+            end
+        end
 
-        vec3set( P2, _U )
-        vec3mul( P2, scaleFactor )
-        vec3set( _Temp, _V )
-        vec3mul( _Temp, scaleFactor )
-        vec3add( P2, _Temp )
-        vec3add( P2, tri[1] )
+        local nrm = calcNormal( tri ) --HACK
+        local origin = calcOrigin( tri )
 
-        return P1, P2
+        --[[
+Triangle can be cliped and get in wrong order
+For now it calculates original tri origin and normal
+to be used in backface culling and lighting
+]]--
+        if ( #outside == 2 ) then
+            local tri1 = triStructsimple( 0, 0, 0 )
+
+            vec3set( tri1[1], inside[1] )
+            planeRay( q, n, inside[1], outside[1], tri1[2] )
+            planeRay( q, n, inside[1], outside[2], tri1[3] )
+
+            vec3set( tri1.nr, nrm ) --HACK
+            vec3set( tri1.og, origin )
+
+            pushAndCalcTriRaw( tri1 )
+        else
+            local tri1 = triStructsimple( inside[1], inside[2], 0 )
+            planeRay( q, n, inside[1], outside[1], tri1[3] )
+
+            local tri2 = triStructsimple( 0, tri1[3], inside[2] )
+            planeRay( q, n, inside[2], outside[1], tri2[1] )
+
+            vec3set( tri1.nr, nrm ) --HACK
+            vec3set( tri2.nr, nrm )
+            vec3set( tri1.og, origin )
+            vec3set( tri2.og, origin )
+
+            pushAndCalcTriRaw( tri1 )
+            pushAndCalcTriRaw( tri2 )
+        end
+
+        return true
     end
 end
 
@@ -104,8 +159,14 @@ local _BA, _CA, _N, _O = vec3(), vec3(), vec3(), vec3()
 
 local function triStruct( v1, v2, v3, normal, origin, color )
     return {
-        v1 = vec3( v1 ), v2 = vec3( v2 ), v3 = vec3( v3 ),
+        vec3( v1 ), vec3( v2 ), vec3( v3 ),
         nr = vec3( normal ), og = vec3( origin ), col = vec3( color )
+    }
+end
+
+triStructsimple = function( v1, v2, v3 )
+    return {
+        vec3( v1 ), vec3( v2 ), vec3( v3 ), og = vec3(), nr = vec3(), col = vec3()
     }
 end
 
@@ -146,15 +207,37 @@ vec3toscreen = toscreen
 --*******************
 -- Cull and clip, then push them to render stack
 
-local pushtorender, pushAndCalcTri
-
 do
     local t_transformed = { vec3(), vec3(), vec3() }
     -- List of 3 transformed vertecies
     local v_normal = vec3() -- rotated normal
     local v_origin = vec3()
     local v_CamToTri = vec3()
-    local v_CamPos
+
+    calcNormal =  function( t_tristruct )
+        if ( not _PRECOMPUTENORMALS ) then
+            vec3sub( vec3set( _BA, t_tristruct[2] ), t_tristruct[1] )
+            vec3sub( vec3set( _CA, t_tristruct[3] ), t_tristruct[1] )
+            vec3cross( _BA, _CA, v_normal )
+        end
+
+        vec3normalize( v_normal )
+
+        return v_normal
+    end -- Should be changed/removed
+
+    calcOrigin = function( t_tristruct )
+        if ( _PRECOMPUTETRIORIGIN ) then
+            mat4mulvec( t_tristruct.og, v_origin, m_OBJMAT )
+        else
+            vec3set( v_origin, t_tristruct[1] )
+            vec3add( v_origin, t_tristruct[2] )
+            vec3add( v_origin, t_tristruct[3] )
+            vec3mul( v_origin, 1/3 )
+        end
+
+        return v_origin
+    end -- Should be changed/removed
 
     pushAndCalcTri = function( t_tristruct, t_transformed )
         if ( not _PRECOMPUTENORMALS ) then
@@ -170,7 +253,8 @@ do
             return --goto skipface
         end
 
-        vec3normalize( v_normal )
+        vec3set( t_tristruct.nr, v_normal )
+        vec3normalize( t_tristruct.nr )
 
         if ( _PRECOMPUTETRIORIGIN ) then
             mat4mulvec( t_tristruct.og, v_origin, m_OBJMAT )
@@ -184,15 +268,23 @@ do
 
         -- Write transformed vectors in stack
 
-        vec3set( t_tristruct.v1, t_transformed[1] )
-        vec3set( t_tristruct.v2, t_transformed[2] )
-        vec3set( t_tristruct.v3, t_transformed[3] )
-        vec3set( t_tristruct.nr, v_normal )
-
-        computeLighting( t_tristruct )
+        vec3set( t_tristruct[1], t_transformed[1] )
+        vec3set( t_tristruct[2], t_transformed[2] )
+        vec3set( t_tristruct[3], t_transformed[3] )
 
         push( s_RENDER, t_tristruct )
     end
+
+    pushAndCalcTriRaw = function( t_tristruct )
+        vec3set( v_CamToTri, t_tristruct[1] )
+        vec3sub( v_CamToTri, v_CamPos )
+
+        if ( vec3dot( t_tristruct.nr, v_CamToTri ) > 0 ) then
+            return
+        end
+
+        push( s_RENDER, t_tristruct )
+    end -- Should be changed/removed
 
     pushtorender = function( obj )
         local v_OAng = obj.ang
@@ -219,8 +311,6 @@ do
 
         --Loop though all object faces
 
-        v_CamPos = GetCamPos()
-
         for faceid = 1, #obj.form do
             local face = obj.form[faceid]
             local t_verts = face.verts
@@ -234,17 +324,21 @@ do
 
                 if ( c1 == -1 ) then
                     goto skipface
-                    --elseif ( c1 == 1 ) then
-                    --local P1, P2 = planeTrianglePoints( _Frustum.far[1], _Frustum.far[2], t_transformed )
-                    --r_circle( P1, 20 )
-                end
-
-                local c2 = planeTriangles( t_transformed, _Frustum.near[1], _Frustum.near[2] )
-
-                if ( c2 == -1 ) then
+                elseif ( c1 == 1 ) then
+                    planeTrianglePoints( _Frustum.far[1], _Frustum.far[2], t_transformed )
                     goto skipface
                 end
             end
+            do
+                local c1 = planeTriangles( t_transformed, _Frustum.near[1], _Frustum.near[2] )
+
+                if ( c1 == -1 ) then
+                    goto skipface
+                elseif ( c1 == 1 ) then
+                    planeTrianglePoints( _Frustum.near[1], _Frustum.near[2], t_transformed )
+                    goto skipface
+                end
+            end -- Should be changed to iteration
 
             pushAndCalcTri( face.tr, t_transformed )
 
@@ -260,7 +354,7 @@ do
         local dot = vec3dot( face.nr, _SUN.dir )
 
         vec3set( face.col, _SUN.diff )
-        vec3mul( face.col, ( dot + 1 ) * .5 )
+        vec3mul( face.col, ( dot + 1 ) * .5 ) --remap [-1, 1] to [0, 1]
         vec3add( face.col, _SUN.ambient )
 
         for _, light in ipairs( _LIGHTS ) do
@@ -294,14 +388,22 @@ local function renderFaces()
     while ( #s_RENDER > 0 ) do
         local face = pop( s_RENDER )
 
-        local x1, y1, z1 = toscreen( face.v1 )
-        local x2, y2, z2 = toscreen( face.v2 )
-        local x3, y3, z3 = toscreen( face.v3 )
+        computeLighting( face )
+
+        local x1, y1, z1 = toscreen( face[1] )
+        local x2, y2, z2 = toscreen( face[2] )
+        local x3, y3, z3 = toscreen( face[3] )
 
         vec3set( t_Drawcol, face.col )
         clamp01( t_Drawcol )
 
         filltriangle( x1, y1, x2, y2, x3, y3, t_Drawcol )
+
+        --[[triangle( x1, y1, x2, y2, x3, y3, white )
+        text( 1, x1, y1, white )
+        text( 2, x2, y2, white )
+        text( 3, x3, y3, white )]]--
+        --debug overlay
     end
 end
 
@@ -313,6 +415,7 @@ local UP, TARGET = vec3( 0, 1, 0 ), vec3( 0, 0, 1 )
 function render()
     _Frustum = CamFrustum()
     updateFrustum()
+    v_CamPos = GetCamPos()
 
     vec3set( UP, 0, 1, 0 )
     vec3set( TARGET, 0, 0, 1 ) -- Reset directions
@@ -348,7 +451,7 @@ function render()
     vec3set( CamRight(), R ) --Right
     vec3set( CamUp(), U ) --Up
 
-    mat4qinv( m_MAT, m_VIEW ) --Used to transform point to camera local
+    mat4qinv( m_MAT, m_VIEW ) --Used too transform point to camera local
 
     mat4mul( GetCamProj(), m_VIEW, m_VIEWPROJ )
 
@@ -356,7 +459,6 @@ function render()
 
     for _, obj in ipairs( _OBJS ) do
         pushtorender( obj )
-        -- modeltype[obj.rendermode or MDL_WIREFRAME](obj)
     end
 
     sortFaces()
