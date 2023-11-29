@@ -2,12 +2,12 @@ if ( not Inited ) then require( "init" ) return end
 
 local _CAM = {
     _PROJ = mat4(),
-    _POS = vec3( 0, 0, -4 ), --vec3( .6, 3, -5 ), -- vec3( -1.561887, 76.775022, -154.045750 ), --
-    _ANG = vec3( 0, 0, 0 ), --vec3( math.pi * .22, math.pi * .982, 0 ),
+    _POS = vec3( .6, 3, -5 ), -- vec3( -1.561887, 76.775022, -154.045750 ), --
+    _ANG = vec3( -.2, 0, 0 ),
     _DIR = vec3(),
     _SCL = vec3( 1, 1, 1 ),
-    _FAR = 50,
-    _NEAR = 1,
+    _FAR = 15,
+    _NEAR = .2,
     _FOV = math.rad( 70 ),
     _LEFTHANDED = not true,
     _ORTHO = not true,
