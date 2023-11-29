@@ -50,7 +50,8 @@ do
     local obj = createclass( C_POLY )
     obj:born()
     obj.form = loadobj( "axis.obj" )
-    obj.scl = vec3( 1/2 )
+    obj.scl = vec3( .6 )
+    obj.ang = vec3( 0, 0, 0 )
 end
 
 local lamp = createclass( C_LIGHT )
@@ -74,8 +75,7 @@ do
     vec3mul( _AmbientColor, 1 )
 
     _SUN:setColor( _SunColor, _AmbientColor )
-    _SUN:setColor( vec3(0.2), vec3(0.01) )
-
+    --_SUN:setColor( vec3(0.2), vec3(0.01) )
 end
 
 local function smooth( x )
@@ -131,7 +131,7 @@ end
 
 local function Loop( CT, DT )
     vec3set( lamp.pos, cos( CurTime ) * 17,0, sin( CurTime ) * 17 )
-    local x, y = vec3toscreen( lamp.pos )
+    local x, y = vec3toscreen( vec3(0) )
 
     circle( x, y, 10, white )
     --draw.plane( vec3(0), vec3( 0, .1 * CT, 0), 2, 3, red )
