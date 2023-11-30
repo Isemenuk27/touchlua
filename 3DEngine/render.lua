@@ -35,6 +35,18 @@ local s_RENDER, _Frustum = stack(), nil
 local computeLighting, triStructsimple --function
 local calcOrigin, pushtorender, pushAndCalcTri, pushAndCalcTriRaw, calcNormal
 
+-- Clip planes stack
+
+local _CLIPPLANES = stack()
+
+function pushClipPlane( plane ) --{ q, n }
+    push( _CLIPPLANES, plane )
+end
+
+function popClipPlane( plane )
+    return pop( _CLIPPLANES )
+end
+
 --*******************
 -- Detect if triangle behind, infront or intersects plane
 
@@ -114,6 +126,7 @@ Triangle can be cliped and get in wrong order
 For now it calculates original tri origin and normal
 to be used in backface culling and lighting
 ]]--
+
         if ( #outside == 2 ) then
             local tri1 = triStructsimple( 0, 0, 0 )
 
@@ -319,26 +332,15 @@ do
                 mat4mulvec( t_verts[j], t_transformed[j], m_OBJMAT )
             end
 
-            do
-                local c1 = planeTriangles( t_transformed, _Frustum.far[1], _Frustum.far[2] )
-
+            for i, clip in ipairs( _CLIPPLANES ) do
+                local c1 = planeTriangles( t_transformed, clip[1], clip[2] )
                 if ( c1 == -1 ) then
                     goto skipface
                 elseif ( c1 == 1 ) then
-                    planeTrianglePoints( _Frustum.far[1], _Frustum.far[2], t_transformed )
+                    planeTrianglePoints( clip[1], clip[2], t_transformed )
                     goto skipface
                 end
             end
-            do
-                local c1 = planeTriangles( t_transformed, _Frustum.near[1], _Frustum.near[2] )
-
-                if ( c1 == -1 ) then
-                    goto skipface
-                elseif ( c1 == 1 ) then
-                    planeTrianglePoints( _Frustum.near[1], _Frustum.near[2], t_transformed )
-                    goto skipface
-                end
-            end -- Should be changed to iteration
 
             pushAndCalcTri( face.tr, t_transformed )
 
@@ -412,9 +414,13 @@ end
 
 local UP, TARGET = vec3( 0, 1, 0 ), vec3( 0, 0, 1 )
 
-function render()
+function render( CT, DT )
     _Frustum = CamFrustum()
-    updateFrustum()
+
+    if ( not _Frustum.frozen ) then
+        updateFrustum(CT, DT)
+    end
+
     v_CamPos = GetCamPos()
 
     vec3set( UP, 0, 1, 0 )
