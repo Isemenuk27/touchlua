@@ -183,7 +183,7 @@ function vec3diffto( v1, v2 )
 end
 
 do
-    local _A, _B, N = vec3(), vec3(), vec3()
+    local _A, _B = vec3(), vec3()
 
     function vec3normal( A, B, C, N )
         vec3diff( A, B, _A )
@@ -191,6 +191,8 @@ do
 
         vec3cross( _A, _B, N )
         vec3normalize( N )
+
+        return N
     end
 end
 
@@ -226,9 +228,14 @@ function vec3cross( v1, v2, v3 )
     if ( not v3 ) then
         v3 = vec3()
     end
-    v3[1] = v1[2] * v2[3] - v1[3] * v2[2]
-    v3[2] = v1[3] * v2[1] - v1[1] * v2[3]
-    v3[3] = v1[1] * v2[2] - v1[2] * v2[1]
+
+    local x, y, z
+
+    x = v1[2] * v2[3] - v1[3] * v2[2]
+    y = v1[3] * v2[1] - v1[1] * v2[3]
+    z = v1[1] * v2[2] - v1[2] * v2[1]
+
+    vec3set( v3, x, y, z )
     return v3
 end
 
