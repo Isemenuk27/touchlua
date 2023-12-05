@@ -5,6 +5,15 @@ GUI.elements = {}
 GUI.RegisteredElements = {}
 GUI.TotalRegistered = 0
 
+local white, black, green, red, gray = draw.white, draw.black, draw.green, draw.red, draw.gray
+local cos, sin, tan, max, min = math.cos, math.sin, math.tan, math.max, math.min
+local acos, asin, atan = math.acos, math.asin, math.atan
+local abs, floor, ceil, rad, deg = math.abs, math.floor, math.ceil, math.rad, math.deg
+local sqrt, random, pi, hpi = math.sqrt, math.random, math.pi, math.pi * .5
+local drect, text = draw.rect, draw.text
+local line, circle = draw.line, draw.circle
+local ipairs, pairs = ipairs, pairs
+
 function GUI.Render()
     for i, e in ipairs( GUI.elements ) do
         e:Draw()
@@ -14,14 +23,13 @@ end
 function GUI.Touch( t )
     GUI.cursors[t.id] = { x = t.x, y = t.y, dx = 0, dy = 0 }
 
-    for _, e in ipairs( GUI.elements ) do
+    for _, e in pairs( GUI.elements ) do
         if ( not e._pressed ) then
             if ( e:Test( t.x, t.y ) ) then
                 e._pressed = t.id
-            end
-
-            if ( e.Press ) then
-                e:Press()
+                if ( e.Press ) then
+                    e:Press()
+                end
             end
         end
     end
@@ -86,7 +94,14 @@ function GUI.AddElement( type, x, y, w, h )
 end
 
 function GUI.KillElement( element )
-    table.remove( GUI.elements, element.id )
+    --table.remove( GUI.elements, element.id )
+    for i = #GUI.elements, 1, -1 do
+        if ( GUI.elements[i] == element ) then
+            table.remove( GUI.elements, i )
+            break
+        end
+    end
+
     element = nil
 end
 
@@ -140,6 +155,52 @@ do
         self.w = w or 120
         self.h = h or 120
 
+        self._pressed = false
+        self._hovered = false
+
+        self.text = false
+
+        return self
+    end
+
+    function rect:Test( x, y )
+        return x > self.x and x < self.x + self.w and y > self.y and y < self.y + self.h
+    end
+
+    local col = { .7, .7, 1, 1 }
+    local col2 = { 1, .7, .7, 1 }
+
+    function rect:SetText( t )
+        self.text = tostring( t )
+    end
+
+    function rect:Draw()
+        if ( self.Think ) then self:Think( self._pressed, self._hovered ) end
+
+        drect( self.x, self.y, self.x + self.w, self.y + self.h, ( self._hovered and col2 ) or ( self._pressed and col ) or gray )
+
+        if ( self.text ) then
+            text( self.text, self.x + self.w * .5, self.y + self.h * .5, white )
+        end
+    end
+
+    function rect:Press()
+        print( self.text )
+    end
+
+    GUI.RegisterElement( "rectbutton", rect )
+end
+
+do
+    local rect = {}
+    rect.__index = rect
+
+    function rect:Init( x, y, w, h )
+        self.x = x or 0
+        self.y = y or 0
+        self.w = w or 120
+        self.h = h or 120
+
         self._pressed = nil
         self._hovered = nil
 
@@ -155,7 +216,7 @@ do
 
     function rect:Draw()
         if ( self.Think ) then self:Think( self._pressed, self._hovered ) end
-        draw.rect( self.x, self.y, self.x + self.w, self.y + self.h, ( self._hovered and col2 ) or ( self._pressed and col ) or draw.gray )
+        drect( self.x, self.y, self.x + self.w, self.y + self.h, ( self._hovered and col2 ) or ( self._pressed and col ) or draw.gray )
         --if ( not self._pressed ) then return end
         --draw.rect( self.x, self.y, self.x + self.w, self.y + self.h, col )
     end
