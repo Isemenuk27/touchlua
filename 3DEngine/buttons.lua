@@ -16,13 +16,24 @@ local padbs = padx * .8
 local pad = padx * .1
 local maxdist = w * .2
 local _pos, _dir, _temp, _mid = vec2(), vec2(), vec2(), vec2()
-local _FORWARD, _RIGHT = vec3(), vec3()
+
+local _jdir = vec2()
+
+IN_JUMP = 1
+IN_DUCK = 2
+IN_USE = 2 ^ 2
+IN_FORWARD = 2 ^ 3
+IN_BACKWARDS = 2 ^ 4
+IN_RIGHT = 2 ^ 5
+IN_LEFT = 2 ^ 6
+
+local i_keys = 0
 
 local center = GUI.AddElement( "rect", padx, pady, padbs, padbs )
 center.Think = function( self, pressed, hover )
     text( " ", self.x + self.w * .5, self.y + self.h * .5, white )
 
-    if ( not pressed ) then return end
+    if ( not pressed ) then vec2set( _jdir, 0, 0 ) return end
 
     local x, y = GUI.cursors[self._pressed].x, GUI.cursors[self._pressed].y
     vec2set( _pos, x, y )
@@ -36,19 +47,7 @@ center.Think = function( self, pressed, hover )
 
     local ang = vec2atan( _temp )
 
-    vec3set( _FORWARD, GetCamDir() )
-    vec3set( _RIGHT, CamRight() )
-    vec3mul( _FORWARD, _temp[2] )
-    vec3mul( _RIGHT, _temp[1] * ( CamLefthanded() and -1 or 1 ) )
-
-    local _OFFSET = vec3add( _FORWARD, _RIGHT )
-
-    vec3normalize( _OFFSET )
-
-    vec3mul( _OFFSET, FrameTime )
-    vec3mul( _OFFSET, CamMoveScale() )
-
-    vec3add( GetCamPos(), _OFFSET )
+    vec2set( _jdir, _temp )
 
     vec2mul( _temp, -l )
 
@@ -59,12 +58,16 @@ center.Think = function( self, pressed, hover )
     circle( _pos[1], _pos[2], w * .1, white )
 end
 
+function Joystick()
+    return _jdir
+end
+
 local Btn3 = GUI.AddElement( "rect", w * .5, h * .75, w * .2, w * .2 )
 
 function Btn3:Think( pressed )
     text( "y+", self.x + self.w * .5, self.y + self.h * .5, white )
     if ( not pressed ) then return end
-    vec3add( GetCamPos(), 0, CamYMoveScale() * FrameTime, 0 )
+    i_keys = i_keys + IN_JUMP
 end
 
 local Btn4 = GUI.AddElement( "rect", w * .5, h * .88, w * .2, w * .2 )
@@ -72,8 +75,7 @@ local Btn4 = GUI.AddElement( "rect", w * .5, h * .88, w * .2, w * .2 )
 function Btn4:Think( pressed )
     text( "y-", self.x + self.w * .5, self.y + self.h * .5, white )
     if ( not pressed ) then return end
-
-    vec3add( GetCamPos(), 0, -FrameTime * CamYMoveScale(), 0 )
+    i_keys = i_keys + IN_DUCK
 end
 
 local Btn7 = GUI.AddElement( "rect", 0, 0, w, h * .6 )
@@ -90,3 +92,11 @@ function Btn7:Moved( x, y )
     vec3set( ang, pitch, yaw, ang[3] )
 end
 
+function ResetKeys()
+    i_keys = 0
+end
+
+function IsKeyDown( e_key )
+    text( 11, 600, 600, white )
+    return ( i_keys & e_key ) == e_key
+end
