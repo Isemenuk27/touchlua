@@ -1,8 +1,23 @@
 local max, min, floor, ceil, abs, sqrt = math.max, math.min, math.floor, math.ceil, math.abs, math.sqrt
 local pi, pi2 = math.pi, math.pi * 2
+local random = math.random
 
 function distd( dx, dy )
     return sqrt( dx * dx + dy * dy )
+end
+
+function rand( low, high )
+    return low + ( high - low ) * random()
+end
+
+function clamp01( x )
+    if ( istable( x ) ) then
+        x[1] = clamp( x[1], 0, 1 )
+        x[2] = clamp( x[2], 0, 1 )
+        x[3] = clamp( x[3], 0, 1 )
+        return x
+    end
+    return clamp( x, 0, 1 )
 end
 
 function dist( x1, y1, x2, y2 )
@@ -93,6 +108,6 @@ function lerp( delta, from, to )
     if ( delta < 0 ) then
         return from
     end
-    return from + ( to 
-- from ) * delta
+    return from + ( to - from ) * delta
 end
+
