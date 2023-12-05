@@ -2,12 +2,12 @@ if ( not Inited ) then require( "init" ) return end
 
 local _CAM = {
     _PROJ = mat4(),
-    _POS = vec3( .6, 3, -5 ), -- vec3( -1.561887, 76.775022, -154.045750 ), --
-    _ANG = vec3( -.2, 0, 0 ),
+    _POS = vec3(),
+    _ANG = vec3(),
     _DIR = vec3(),
     _SCL = vec3( 1, 1, 1 ),
-    _FAR = 15,
-    _NEAR = .2,
+    _FAR = 300,
+    _NEAR = .1,
     _FOV = math.rad( 70 ),
     _LEFTHANDED = not true,
     _ORTHO = not true,
@@ -21,7 +21,7 @@ local _CAM = {
     _SORTTRIS = true,
     _MOVEMENTSCALE = 1,
     _YMOVESCALE = 1.1,
-    _SMOOTHSHADE = true,
+    _SMOOTHSHADE = not true,
 }
 
 function CamAng( p, y, r )
@@ -100,6 +100,10 @@ function CamFrustum()
     return _CAM._FRUSTUM
 end
 
+function CamFov()
+    return _CAM._FOV
+end
+
 function Cam( off, ang, scl )
     if ( off ) then
         CamPos( off[1], off[2], off[3] )
@@ -144,7 +148,7 @@ local function _CAMERAINIT()
         mat4ortho( w, h, _CAM._NEAR, _CAM._FAR, _CAM._PROJ )
     else
         mat4perspective( _CAM._FOV, ScrRatio(), _CAM._NEAR, _CAM._FAR, _CAM._PROJ )
-        _CAM._FRUSTUM = buildFrustum( _CAM._FOV, ScrRatio(), _CAM._NEAR, _CAM._FAR )
+        --_CAM._FRUSTUM = buildFrustum( _CAM._FOV, ScrRatio(), _CAM._NEAR, _CAM._FAR )
     end
 end
 
