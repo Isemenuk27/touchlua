@@ -2,6 +2,7 @@ if ( not Inited ) then require( "init" ) return end
 
 local _PRECOMPUTENORMALS = false
 local _PRECOMPUTETRIORIGIN = false
+local _DRAWOVERLAY = false
 --*******************
 -- Localize variables
 
@@ -198,7 +199,7 @@ function face( p1, p2, p3 )
     vec3add( _O, p3 )
     vec3mul( _O, 1 / 3 ) --Mid point
 
-    return { verts = { p1, p2, p3 }, origin = _O, normal = _N, tr = triStruct() }
+    return { verts = { p1, p2, p3 }, tformed = { vec3(), vec3(), vec3() }, origin = _O, normal = _N, tr = triStruct() }
 end
 
 --*******************
@@ -327,9 +328,14 @@ do
         for faceid = 1, #obj.form do
             local face = obj.form[faceid]
             local t_verts = face.verts
+            local t_tformed = face.tformed
 
             for j = 1, 3 do
-                mat4mulvec( t_verts[j], t_transformed[j], m_OBJMAT )
+                mat4mulvec( t_verts[j], t_tformed[j], m_OBJMAT )
+                t_transformed[j] = t_tformed[j]
+            end
+            if ( _RAYCASTRENDER ) then
+                ::skipface::
             end
 
             for i, clip in ipairs( _CLIPPLANES ) do
@@ -401,8 +407,13 @@ local function renderFaces()
 
         filltriangle( x1, y1, x2, y2, x3, y3, t_Drawcol )
 
-        --[[triangle( x1, y1, x2, y2, x3, y3, white )
-        text( 1, x1, y1, white )
+        --triBarycentric( x1, y1, x2, y2, x3, y3, t_Drawcol )
+
+        if ( _DRAWOVERLAY ) then
+            triangle( x1, y1, x2, y2, x3, y3, white )
+        end
+
+        --[[text( 1, x1, y1, white )
         text( 2, x2, y2, white )
         text( 3, x3, y3, white )]]--
         --debug overlay
@@ -416,10 +427,6 @@ local UP, TARGET = vec3( 0, 1, 0 ), vec3( 0, 0, 1 )
 
 function render( CT, DT )
     _Frustum = CamFrustum()
-
-    if ( not _Frustum.frozen ) then
-        updateFrustum(CT, DT)
-    end
 
     v_CamPos = GetCamPos()
 
@@ -457,6 +464,10 @@ function render( CT, DT )
     vec3set( CamRight(), R ) --Right
     vec3set( CamUp(), U ) --Up
 
+    if ( not _Frustum.frozen ) then
+        updateFrustum(CT, DT)
+    end
+
     mat4qinv( m_MAT, m_VIEW ) --Used too transform point to camera local
 
     mat4mul( GetCamProj(), m_VIEW, m_VIEWPROJ )
@@ -467,7 +478,10 @@ function render( CT, DT )
         pushtorender( obj )
     end
 
-    sortFaces()
+    if ( not _RAYCASTRENDER ) then
+        sortFaces()
 
-    renderFaces()
+        renderFaces()
+    end
+
 end
