@@ -29,6 +29,8 @@ do
         return vec3dot( v, v )
     end
 
+    vec3sqrmag = vec3magsqr
+
     function vec3set( v, x, y, z )
         if ( istable( x ) ) then
             return vec3set( v, x[1], x[2], x[3] )
@@ -72,12 +74,19 @@ do
     end
 
     function vec3sub( v, x, y, z )
+        local dest
         if ( istable( x ) ) then
-            return vec3sub( v, x[1], x[2], x[3] )
+            x, y, z = x[1], x[2], x[3]
         end
-        v[1] = v[1] - x
-        v[2] = v[2] - ( y or x )
-        v[3] = v[3] - ( z or x )
+        if ( istable( y ) ) then
+            dest = y
+        else
+            dest = v
+        end
+
+        dest[1] = v[1] - x
+        dest[2] = v[2] - ( y or x )
+        dest[3] = v[3] - ( z or x )
         return v
     end
 end
