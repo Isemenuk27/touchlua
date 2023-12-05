@@ -1,5 +1,5 @@
 if ( not Inited ) then require( "init" ) return end
---Todo: fix quad import
+
 local tn = tonumber
 local insert = table.insert
 
@@ -26,16 +26,16 @@ local function constructFace( a )
     local numslashes = numChars( a[2], "/" )
 
     if ( sl == 0 ) then --Only vertices
-        local p1 = vec3( vertexbuffer[tn(a[2])] )
-        local p2 = vec3( vertexbuffer[tn(a[3])] )
-        local p3 = vec3( vertexbuffer[tn(a[4])] )
+        local p1 = vertexbuffer[tn(a[2])]
+        local p2 = vertexbuffer[tn(a[3])]
+        local p3 = vertexbuffer[tn(a[4])]
 
         insert( form, face( p1, p2, p3 ) )
 
         if ( a[5] ) then
-            local p1 = vec3( vertexbuffer[tn(a[4])] )
-            local p2 = vec3( vertexbuffer[tn(a[5])] )
-            local p3 = vec3( vertexbuffer[tn(a[2])] )
+            local p1 = vertexbuffer[tn(a[4])]
+            local p2 = vertexbuffer[tn(a[5])]
+            local p3 = vertexbuffer[tn(a[2])]
             insert( form, face( p1, p2, p3 ) )
         end
     else
@@ -43,17 +43,17 @@ local function constructFace( a )
         local pf2 = string.Split( a[3], "/" )
         local pf3 = string.Split( a[4], "/" )
 
-        local p1 = vec3( vertexbuffer[tn(pf1[1])] )
-        local p2 = vec3( vertexbuffer[tn(pf2[1])] )
-        local p3 = vec3( vertexbuffer[tn(pf3[1])] )
+        local p1 = vertexbuffer[tn(pf1[1])]
+        local p2 = vertexbuffer[tn(pf2[1])]
+        local p3 = vertexbuffer[tn(pf3[1])]
 
         insert( form, face( p1, p2, p3 ) )
 
         if ( a[5] ) then
             local pf4 = string.Split( a[5], "/" )
-            local p1 = vec3( vertexbuffer[tn(pf3[1])] )
-            local p2 = vec3( vertexbuffer[tn(pf4[1])] )
-            local p3 = vec3( vertexbuffer[tn(pf1[1])] )
+            local p1 = vertexbuffer[tn(pf3[1])]
+            local p2 = vertexbuffer[tn(pf4[1])]
+            local p3 = vertexbuffer[tn(pf1[1])]
             insert( form, face( p1, p2, p3 ) )
         end
     end
@@ -66,6 +66,10 @@ local keys = {
 
 function loadobj( name )
     local f = io.open ( "mesh/" .. name , "r" )
+
+    if ( not f ) then
+        f = io.open ( "3DEngine/mesh/" .. name , "r" )
+    end
 
     form, vertexbuffer = {}, {}
 
