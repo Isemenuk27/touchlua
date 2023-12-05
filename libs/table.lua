@@ -99,3 +99,24 @@ function table.shiftRight(tbl)
 
     tbl[1] = lastValue
 end
+
+function table.KeyFromValue( tbl, val )
+    for key, value in pairs( tbl ) do
+        if ( value == val ) then return key end
+    end
+end
+
+function table.RemoveByValue( tbl, val )
+
+    local key = table.KeyFromValue( tbl, val )
+    if ( not key ) then return false end
+
+    if ( isnumber( key ) ) then
+        table.remove( tbl, key )
+    else
+        tbl[ key ] = nil
+    end
+
+    return key
+
+end
