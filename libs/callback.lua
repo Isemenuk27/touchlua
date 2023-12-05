@@ -15,7 +15,10 @@ function exec( id, ... )
     end
 
     for _, f in ipairs( Callbacks[id] ) do
-        f( ... )
+        local r = f( ... )
+
+        if ( r ) then
+            return true, r, _
+        end
     end
-  
 end
