@@ -1,4 +1,9 @@
-package.path = package.path .. ";../?.lua"
+if ( _packagepath ) then
+    package.path = _packagepath
+else
+    package.path = package.path .. ";../?.lua" .. ";../../?.lua"
+end
+
 require( "libs/table" )
 require( "libs/math" )
 require( "libs/vec2" )
@@ -9,6 +14,8 @@ require( "libs/callback" )
 require( "libs/cursor" )
 require( "libs/2dgui" )
 require( "libs/string" )
+
+--**********************
 
 Inited = 1
 
@@ -33,108 +40,121 @@ function memused()
     return collectgarbage('count') * 1024
 end
 
+_RAYCASTRENDER = not true
+_LOOPCALLBACK = "Scene.Loop"
+_RAYDIST = sqrt( 24 * 24 * 24 )
+
 require( "screen" )
 showscreen()
 require( "draw2" )
 require( "camera" )
 require( "frustum" )
 require( "render" )
-require( "buttons" )
 require( "objects" )
 require( "meshload" )
+require( "raycast" )
+require( "sky" )
+require( "mainmenu" )
 
 local w, h = Scr()
 local hw, hh = HScr()
 
-do
-    local obj = createclass( C_POLY )
-    obj:born()
-    obj.form = loadobj( "axis.obj" )
-    obj.scl = vec3( .6 )
-    obj.ang = vec3( 0, 0, 0 )
+local function menuLoop( DT )
+    text( round( 1 / DT, 2 ), 20, 20, red )
 end
 
-local lamp = createclass( C_LIGHT )
-lamp:born()
-lamp:enable()
-lamp.power = 200
-lamp:setPos( vec3( 0, 20, -130 ) )
-lamp:setDir( vec3normalize( vec3( -0.015374, 0.928981, -0.369808 ) ) )
-lamp.diffuse = vec3mul( vec3( 0, 255, 0 ), 1 / 255 )
+while true do
+    local TimeStart = RealTime()
+
+    clear( black )
+
+    draw.doevents()
+
+    if ( FrameTime > 0 ) then
+        menuLoop( FrameTime )
+        GUI.Render()
+        post()
+    else
+        exec( "firstmenuframe", w, h )
+    end
+
+    FrameTime = RealTime() - TimeStart
+
+    if ( _SCENETOLOAD ) then
+        require( "scenes/" .. _SCENETOLOAD )
+        break
+    end
+end
+
+require( "buttons" )
+
+_Player = createclass( C_PLAYER )
+_Player:born()
+_Player.ang = vec3( GetCamAng() )
+_Player.pos = vec3( GetCamPos() )
 
 do
     _SUN = createclass( C_LIGHT )
     _SUN:born()
-    _SUN:setDir( vec3normalize( vec3( -0.015374, 0.928981, -0.369808 ) ) )
+    _SUN:setDir( vec3normalize( vec3( 0.015374, -0.928981, 0.369808 ) ) )
 
-    local _SunColor = vec3( 85, 124, 173 )
-    vec3mul( _SunColor, 1 / 255 )
+    if ( not exec( "sunborn", _SUN ) ) then
+        local _AmbientColor = vec3( 248, 212, 171 )
+        vec3mul( _AmbientColor, 1 / 255 )
+        vec3mul( _AmbientColor, 1 )
 
-    local _AmbientColor = vec3( 248, 212, 171 )
-    vec3mul( _AmbientColor, 1 / 255 )
-    vec3mul( _AmbientColor, 1 )
+        local _SunColor = vec3( 85, 124, 173 )
+        vec3mul( _SunColor, 1 / 255 )
 
-    _SUN:setColor( _SunColor, _AmbientColor )
-    --_SUN:setColor( vec3(0.2), vec3(0.01) )
-end
-
-local function smooth( x )
-    return  0.5 * (1 - cos( 2 * pi * x) )
-end
-
-local skynum = 4
-
-local skys = {
-    { { 4 / 255, 0, 68 / 255 },
-    { 37 / 255, 161 / 255, 170 / 255 }, },
-
-    { { 31 / 255, 54 / 255, 76 / 255 },
-    { 168 / 255, 105 / 255, 0 / 255 }, },
-
-    { vec3mul( vec3( 248, 212, 171 ), 1 / 255 ),
-    vec3mul( vec3( 85, 124, 173 ), 1 / 255 ), },
-
-    { vec3mul( vec3(108), 1 / 255 ),
-    vec3mul( vec3(89), 1 / 255 ) },
-}
-
-local skycol1, skycol2, skydiff
-
-if ( skys[skynum] ) then
-    skycol1 = skys[skynum][1]
-    skycol2 = skys[skynum][2]
-    skydiff = { skycol2[1] - skycol1[1], skycol2[2] - skycol1[2], skycol2[3] - skycol1[3] }
-end
-
-local sky = { 1, 0, 1, 1 }
-
-local function drawsky()
-    if ( not skycol1 ) then
-        return clear( black )
+        _SUN:setColor( _SunColor, _AmbientColor )
     end
+end
 
-    local step = h / 10
-    local b = h / step
+local out = {}
+local pcol = { 1, 1, 1, 1 }
 
-    for i = 0, b do
-        local c = smooth( .5 * ( ( ( GetCamDir()[2] + 1 ) * .5 ) + (i/b) ) )
+local x, y = 1, 2
 
-        for j = 1, 3 do
-            sky[j] = skycol1[j] + ( skydiff[j] * c )
+local function raytrace()
+    local _FRUSTUM = CamFrustum()
+    --local up, right = vec3mul( vec3( CamUp() ), _FRUSTUM.farHeight * .5 ), vec3mul( vec3( CamRight() ), _FRUSTUM.farWidth * .5 )
+
+    while true do
+        if ( x == w ) then
+            coroutine.yield()
+        else
+            x = x + 1
+
+            coroutine.yield()
+
+            traceRay( GetCamPos(), GetCamDir(), _RAYDIST, out )
+            vec3set( pcol, out.dist / _RAYDIST )
+            draw.point( x, y, pcol )
         end
-
-        local y = step * i
-
-        fillrect( 0, y, w, y + step, sky )
     end
 end
+
+local co
 
 local function Loop( CT, DT )
-    vec3set( lamp.pos, cos( CurTime ) * 17,0, sin( CurTime ) * 17 )
-    local x, y = vec3toscreen( vec3(0) )
 
-    circle( x, y, 10, white )
+    --[[traceRay( GetCamPos(), GetCamDir(), _RAYDIST, out )
+    if ( out.hit ) then
+        vec3set( obj.pos, out.pos )
+        local x, y = vec3toscreen( pos )
+        circle( x, y, 10, white )
+    end]]--
     --draw.plane( vec3(0), vec3( 0, .1 * CT, 0), 2, 3, red )
+
+    if ( _RAYCASTRENDER ) then
+        if ( not co or not coroutine.resume( co ) ) then
+            co = coroutine.create( raytrace )
+            coroutine.resume( co )
+        end
+    end
+
+    exec( _LOOPCALLBACK, CT, DT )
+
     text( string.NiceSize( memused() ), w - 130, 20, red )
     text( string.NiceSize( FrameMem ), w - 130, 50, red )
 
@@ -142,7 +162,6 @@ local function Loop( CT, DT )
     text( vec3tostring( GetCamPos() ), 20, 60, white )
     text( vec3tostring( GetCamDir() ), 20, 100, white )
     text( vec3tostring( GetCamAng() ), 20, 140, white )
-
 end
 
 while true do
@@ -151,12 +170,17 @@ while true do
 
     draw.doevents()
 
-    --clear( sky or black )
+    --clear( black )
 
     if ( CurTime > 0 ) then
+        _Player:move( CurTime, FrameTime )
+
         drawsky()
-        render()
+        render( CurTime, FrameTime )
         Loop( CurTime, FrameTime )
+
+        ResetKeys()
+
         GUI.Render()
 
         post()
