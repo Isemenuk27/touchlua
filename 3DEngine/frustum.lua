@@ -27,20 +27,19 @@ local _FRUSTUM = {
 }
 
 function updateFrustum( CT, DT )
-    --_FRUSTUM.frozen = CT > 4
+    --_FRUSTUM.frozen = CT > 1
 
-    vec3set( _FRUSTUM.near[1], GetCamDir() )
+    vec3set( _FRUSTUM.near[1], CamForward() )
     vec3mul( _FRUSTUM.near[1], _FRUSTUM.zn )
     vec3add( _FRUSTUM.near[1], GetCamPos() )
 
-    vec3set( _FRUSTUM.near[2], GetCamDir() )
+    vec3set( _FRUSTUM.near[2], CamForward() )
 
-
-    vec3set( _FRUSTUM.far[1], GetCamDir() )
+    vec3set( _FRUSTUM.far[1], CamForward() )
     vec3mul( _FRUSTUM.far[1], _FRUSTUM.zf )
     vec3add( _FRUSTUM.far[1], GetCamPos() )
 
-    vec3set( _FRUSTUM.far[2], GetCamDir() )
+    vec3set( _FRUSTUM.far[2], CamForward() )
     vec3mul( _FRUSTUM.far[2], -1 )
 
     local up, right = vec3mul( vec3( CamUp() ), _FRUSTUM.farHeight * .5 ), vec3mul( vec3( CamRight() ), _FRUSTUM.farWidth * .5 )
