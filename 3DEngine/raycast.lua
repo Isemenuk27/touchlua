@@ -2,7 +2,7 @@ if ( not Inited ) then require( "init" ) return end
 
 local vec3, vec3sub, vec3dot = vec3, vec3sub, vec3dot
 local edge1, edge2, tvec, pvec, qvec = vec3(), vec3(), vec3(), vec3(), vec3()
-
+local min, max = math.min, math.max
 local EPSILON = 0.0001
 
 local function ray_tri( orig, dir, vert )
@@ -100,7 +100,7 @@ local function testmesh( obj, p, d, maxdist )
 end
 
 _Result = vec3()
---[[
+
 local function RayAABB( o, n, lb, rt )
     local dx = 1 / n[1]
     local dy = 1 / n[2]
@@ -126,7 +126,7 @@ local function RayAABB( o, n, lb, rt )
 
     return true
 end
-]]--
+
 function traceRay( p, d, dist, out )
     local rayEnd = vec3add( vec3mul( vec3( d ), dist ), p )
     local raymin, raymax = vec3bbox( p, rayEnd )
@@ -143,6 +143,10 @@ function traceRay( p, d, dist, out )
         local mn, mx = objaabb( obj )
 
         if ( not AABBAABB( raymin, raymax, mn, mx ) ) then
+            goto skiprayobj
+        end
+
+        if ( not RayAABB( p, d, mn, mx ) ) then
             goto skiprayobj
         end
 
