@@ -1,5 +1,9 @@
 local cos, sin, tan = math.cos, math.sin, math.tan
 local vec3add, vec3set, vec3mul, vec3dot = vec3add, vec3set, vec3mul, vec3dot
+local atan = math.atan
+local asin = math.asin
+local sqrt = math.sqrt
+local pi = math.pi
 local istable = istable
 
 function mat4( a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p )
@@ -84,6 +88,55 @@ function mat4zrot( m, t )
     m[1][1] = cos( t )
 
     return m
+end
+
+local function SinCos( a )
+    return sin( a ), cos( a )
+end
+
+function mat4setupangles( mat, ang )
+    local sy, cy = SinCos( ang[2] )
+    local sp, cp = SinCos( ang[1] )
+    local sr, cr = SinCos( ang[3] )
+
+    mat[0][0] = cp*cy
+    mat[1][0] = cp*sy
+    mat[2][0] = -sp
+    mat[0][1] = sr*sp*cy+cr*-sy
+    mat[1][1] = sr*sp*sy+cr*cy
+    mat[2][1] = sr*cp
+    mat[0][2] = (cr*sp*cy+-sr*-sy)
+    mat[1][2] = (cr*sp*sy+-sr*cy)
+    mat[2][2] = cr*cp
+    mat[0][3] = 0
+    mat[1][3] = 0
+    mat[2][3] = 0
+
+    return mat
+end
+
+do
+    local forward, left, up = vec3(), vec3(), vec3()
+
+    function mat4toAng( src, vAngles )
+        vec3set( forward, src[0][0], src[1][0], src[2][0] )
+        vec3set( left, src[0][1], src[1][1], src[2][1] )
+        up[3] = src[2][2]
+
+        local xyDist = sqrt( forward[1] * forward[1] + forward[3] * forward[3] )
+
+        if ( xyDist > 0.001 ) then
+            vAngles[1] = atan( forward[3], forward[1] )
+            vAngles[2] = atan( -forward[2], xyDist )
+            vAngles[3] = atan( left[2], up[2] )
+        else
+            vAngles[1] = atan( -left[1], left[3] )
+            vAngles[2] = atan( -forward[2], xyDist )
+            vAngles[3] = 0
+        end
+
+        return vAngles
+    end
 end
 
 function mat4copy( mat )
@@ -176,6 +229,10 @@ function mat4setupSc( m, scl )
     return m
 end
 
+function mat4getTr( m, v )
+    return vec3set( v or vec3(), m[3][0], m[3][1], m[3][2] )
+end
+
 function mat4mul( A, B, o )
     if ( not o ) then
         o = mat4()
@@ -266,6 +323,72 @@ do
         mat4setTr( _MAT, wpos )
 
         mat4mulvec( lpos, out, _MAT )
+    end
+
+    local _M = mat4()
+
+    function mat4setAng( mat, ang )
+        mat4yrot( _Y, ang[2] )
+        mat4xrot( _X, ang[1] )
+        mat4zrot( _Z, ang[3] )
+
+        mat4mul( mat, _Y, _M )
+        mat4mul( _M, _Z, mat )
+        mat4mul( mat, _X, _M )
+
+        mat4set( mat, _M )
+
+        return mat
+    end
+
+    function mat4getAng( mat, ang )
+        local p, y, r
+        p = asin( -mat[3][2] )
+
+        if ( cos( p ) > 0.0001 ) then
+            y = atan( mat[3][1], mat[3][3] )
+            r = atan( mat[1][2], mat[2][2] )
+        else
+            y = 0.0
+            r = atan( -mat[2][1], mat[1][1] )
+        end
+
+        return vec3set( ang or vec3(), p, y, r )
+    end
+
+    local _MAT2, _RES = mat4(), mat4()
+
+    function mat4worldtolocal( wpos, wang, lpos, lang )
+        mat4identity( _MAT )
+
+        mat4setTr( _MAT, lpos )
+        mat4setAng( _MAT, lang )
+
+        mat4identity( _MAT2 )
+
+        mat4setTr( _MAT2, wpos )
+        mat4setAng( _MAT2, wang )
+        mat4qinv( _MAT2 )
+
+        mat4mul( _MAT2, _MAT, _RES )
+
+        return mat4getTr( _RES ), mat4toAng( _RES, vec3() )
+    end
+
+    function mat4localtoworld( wpos, wang, lpos, lang )
+        mat4identity( _MAT )
+
+        mat4setTr( _MAT, lpos )
+        mat4setAng( _MAT, lang )
+
+        mat4identity( _MAT2 )
+
+        mat4setTr( _MAT2, wpos )
+        mat4setAng( _MAT2, wang )
+
+        mat4mul( _MAT2, _MAT, _RES )
+
+        return mat4getTr( _RES ), mat4toAng( _RES, vec3() )
     end
 end
 do
