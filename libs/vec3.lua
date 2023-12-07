@@ -155,6 +155,25 @@ function vec3toang( v, o )
     return o
 end
 
+local max, min = math.max, math.min
+
+function vec3bbox( ... )
+    local maxx, maxy, maxz = math.mininteger, math.mininteger, math.mininteger
+    local minx, miny, minz = math.maxinteger, math.maxinteger, math.maxinteger
+
+    for i, v_Vtex in ipairs( { ... } ) do
+        maxx = max( v_Vtex[1], maxx )
+        maxy = max( v_Vtex[2], maxy )
+        maxz = max( v_Vtex[3], maxz )
+
+        minx = min( v_Vtex[1], minx )
+        miny = min( v_Vtex[2], miny )
+        minz = min( v_Vtex[3], minz )
+    end
+
+    return vec3( minx, miny, minz ), vec3( maxx, maxy, maxz )
+end
+
 function vec3diff( v1, v2, v3 )
     local dx = v2[1] - v1[1]
     local dy = v2[2] - v1[2]
