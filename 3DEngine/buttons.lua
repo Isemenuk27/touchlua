@@ -97,6 +97,5 @@ function ResetKeys()
 end
 
 function IsKeyDown( e_key )
-    text( 11, 600, 600, white )
     return ( i_keys & e_key ) == e_key
 end
