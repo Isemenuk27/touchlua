@@ -15,7 +15,7 @@ local abs, max = math.abs, math.max
 --Matrices and vectors
 local m_VIEWPROJ, m_VIEW, m_OBJMAT = mat4(), mat4(), mat4()
 local m_MAT, m_ROT, m_ROT2, m_VTEXMAT = mat4(), mat4(), mat4(), mat4()
-local m_ROT, m_VTX = mat4(), mat4()
+local m_ROT, m_VTX, m_CRot = mat4(), mat4(), mat4()
 local m_X, m_Y, m_Z = mat4(), mat4(), mat4()
 local v_OBJPOS, v_OBJANG, v_OBJSCL, v_CAMDIR = vec3(), vec3( 0, 0, 0 ), vec3( 1 ), vec3()
 local v_VTEX, v_VTEXTR = vec3(), vec3()
@@ -323,6 +323,14 @@ do
 
         mat4setTr( m_OBJMAT, v_OPos )
 
+        for i = 1, 8 do
+            mat4mulvec( obj.form.rawpoints[i], obj.form.oobbpoints[i], m_OBJMAT )
+        end
+
+        for i = 1, 2 do
+            mat4mulvec( obj.form.rawoobb[i], obj.form.oobb[i], m_OBJMAT )
+        end
+
         --Loop though all object faces
 
         for faceid = 1, #obj.form do
@@ -442,6 +450,7 @@ function render( CT, DT )
 
     -- Rotation
 
+
     mat4yrot( m_Y, Ang[2] ) -- Yaw
     mat4xrot( m_X, Ang[1] ) -- Pitch
     mat4zrot( m_Z, Ang[3] ) -- Roll
@@ -449,6 +458,9 @@ function render( CT, DT )
     mat4mul( m_VIEW, m_Y, m_MAT )
     mat4mul( m_MAT, m_Z, m_VIEW )
     mat4mul( m_VIEW, m_X, m_MAT ) -- Rotations
+
+    --[[    mat4setupangles( m_CRot, Ang )
+    mat4mul( m_VIEW, m_CRot, m_MAT )]]--
 
     mat4mulvec( TARGET, GetCamDir(), m_MAT )
     --vec3add( vec3set( TARGET, GetCamPos() ), GetCamDir() )
@@ -478,7 +490,7 @@ function render( CT, DT )
         pushtorender( obj )
     end
 
-    if ( not _RAYCASTRENDER ) then
+    if ( not _SUPRESSRENDER ) then
         sortFaces()
 
         renderFaces()
