@@ -5,6 +5,11 @@ obj.scl = vec3( 1 )
 obj.ang = vec3( 0, 0, 0 )
 obj.solid = true
 
+local obj2 = createclass( C_POLY )
+obj2:born()
+obj2.form = loadobj( "cube.obj" )
+obj2.scl = vec3( 1 )
+
 vec3set( GetCamPos(), 1.4629, 3.8762 - 1.4, 9.1 )
 vec3set( GetCamAng(), -0.35, 3, 0 )
 
@@ -26,6 +31,13 @@ local function Loop( CT, DT )
 
     drawaabb( min, max )
 
+    local min2, max2 = objaabb( obj2 )
+
+    local col = AABBAABB( min, max, min2, max2 ) and draw.red or draw.blue
+
+    drawaabb( min2, max2, col )
+
+    vec3set( obj2.pos, 0, 2 + 2 * math.cos( CT ), 0 )
     vec3set( lamp.pos, math.cos( CT ) * 17, math.sin( CT ) * 17, 0 )
 end
 
