@@ -122,3 +122,48 @@ do
         end
     end
 end
+
+
+local function connect( p1, p2, col )
+    local x1, y1 = vec3toscreen( p1 )
+    local x2, y2 = vec3toscreen( p2 )
+    draw.line( x1, y1, x2, y2, col or draw.white )
+end
+
+local function text( t, p )
+    local x1, y1 = vec3toscreen( p )
+    draw.text( t, x1, y1, draw.white )
+end
+
+function drawaabb( min, max )
+    local p = {
+        vec3( min[1], max[2], min[3] ),
+        vec3( max[1], max[2], min[3] ),
+        vec3( max[1], min[2], min[3] ),
+        vec3( min[1], min[2], min[3] ),
+
+        vec3( min[1], max[2], max[3] ),
+        vec3( max[1], max[2], max[3] ),
+        vec3( max[1], min[2], max[3] ),
+        vec3( min[1], min[2], max[3] ),
+    }
+
+    for i, p1 in ipairs( p ) do
+        text( i, p1 )
+    end
+
+    connect( p[1], p[2], draw.cyan )
+    connect( p[2], p[3], draw.cyan )
+    connect( p[3], p[4], draw.cyan )
+    connect( p[4], p[1], draw.cyan )
+
+    connect( p[5], p[6], draw.red )
+    connect( p[6], p[7], draw.red )
+    connect( p[7], p[8], draw.red )
+    connect( p[8], p[5], draw.red )
+
+    connect( p[1], p[5], draw.green )
+    connect( p[2], p[6], draw.green )
+    connect( p[3], p[7], draw.green )
+    connect( p[4], p[8], draw.green )
+end
