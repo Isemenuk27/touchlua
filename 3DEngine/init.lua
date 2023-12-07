@@ -1,7 +1,7 @@
 if ( _packagepath ) then
     package.path = _packagepath
 else
-    package.path = package.path .. ";../?.lua" .. ";../../?.lua"
+    package.path = package.path .. ";../?.lua"
 end
 
 require( "libs/table" )
@@ -40,7 +40,6 @@ function memused()
     return collectgarbage('count') * 1024
 end
 
-_RAYCASTRENDER = not true
 _LOOPCALLBACK = "Scene.Loop"
 _RAYDIST = sqrt( 24 * 24 * 24 )
 
@@ -110,32 +109,6 @@ do
     end
 end
 
-local out = {}
-local pcol = { 1, 1, 1, 1 }
-
-local x, y = 1, 2
-
-local function raytrace()
-    local _FRUSTUM = CamFrustum()
-    --local up, right = vec3mul( vec3( CamUp() ), _FRUSTUM.farHeight * .5 ), vec3mul( vec3( CamRight() ), _FRUSTUM.farWidth * .5 )
-
-    while true do
-        if ( x == w ) then
-            coroutine.yield()
-        else
-            x = x + 1
-
-            coroutine.yield()
-
-            traceRay( GetCamPos(), GetCamDir(), _RAYDIST, out )
-            vec3set( pcol, out.dist / _RAYDIST )
-            draw.point( x, y, pcol )
-        end
-    end
-end
-
-local co
-
 local function Loop( CT, DT )
 
     --[[traceRay( GetCamPos(), GetCamDir(), _RAYDIST, out )
@@ -146,22 +119,18 @@ local function Loop( CT, DT )
     end]]--
     --draw.plane( vec3(0), vec3( 0, .1 * CT, 0), 2, 3, red )
 
-    if ( _RAYCASTRENDER ) then
-        if ( not co or not coroutine.resume( co ) ) then
-            co = coroutine.create( raytrace )
-            coroutine.resume( co )
-        end
-    end
-
     exec( _LOOPCALLBACK, CT, DT )
 
-    text( string.NiceSize( memused() ), w - 130, 20, red )
-    text( string.NiceSize( FrameMem ), w - 130, 50, red )
+    if ( not _NOSTATS ) then
+        text( string.NiceSize( memused() ), w - 130, 20, red )
+        text( string.NiceSize( FrameMem ), w - 130, 50, red )
 
-    text( round( 1 / DT, 2 ), 20, 20, red )
-    text( vec3tostring( GetCamPos() ), 20, 60, white )
-    text( vec3tostring( GetCamDir() ), 20, 100, white )
-    text( vec3tostring( GetCamAng() ), 20, 140, white )
+        text( round( 1 / DT, 2 ), 20, 20, red )
+        text( vec3tostring( GetCamPos() ), 20, 60, white )
+        text( vec3tostring( GetCamDir() ), 20, 100, white )
+        text( vec3tostring( GetCamAng() ), 20, 140, white )
+    end
+
 end
 
 while true do
@@ -176,6 +145,7 @@ while true do
         _Player:move( CurTime, FrameTime )
 
         drawsky()
+
         render( CurTime, FrameTime )
         Loop( CurTime, FrameTime )
 
