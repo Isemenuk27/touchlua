@@ -72,7 +72,16 @@ local function ray_tri( orig, dir, vert )
     return true, t, u, v
 end
 
+function AABBAABB( min1, max1, min2, max2 )
+    return
+    ( min1[1] <= max2[1] and max1[1] >= min2[1] ) and
+    ( min1[2] <= max2[2] and max1[2] >= min2[2] ) and
+    ( min1[3] <= max2[3] and max1[3] >= min2[3] )
+end
+
 local _HitPoints = {}
+
+local insert = table.insert
 
 local function testmesh( obj, p, d, maxdist )
     for faceid = 1, #obj.form do
@@ -85,22 +94,61 @@ local function testmesh( obj, p, d, maxdist )
                 t, u, v, face
             }
 
-            table.insert( _HitPoints, tb )
+            insert( _HitPoints, tb )
         end
     end
 end
 
 _Result = vec3()
+--[[
+local function RayAABB( o, n, lb, rt )
+    local dx = 1 / n[1]
+    local dy = 1 / n[2]
+    local dz = 1 / n[3]
 
+    local t1 = ( lb[1] - o[1] ) * dx
+    local t2 = ( rt[1] - o[1] ) * dx
+    local t3 = ( lb[2] - o[2] ) * dy
+    local t4 = ( rt[2] - o[2] ) * dy
+    local t5 = ( lb[3] - o[3] ) * dz
+    local t6 = ( rt[3] - o[3] ) * dz
+
+    local tmin = max( max( min( t1, t2 ), min( t3, t4 ) ), min( t5, t6 ) )
+    local tmax = min( min( max( t1, t2 ), max( t3, t4 ) ), max( t5, t6 ) )
+
+    if ( tmax < 0 ) then
+        return false
+    end
+
+    if ( tmin > tmax ) then
+        return false
+    end
+
+    return true
+end
+]]--
 function traceRay( p, d, dist, out )
+    local rayEnd = vec3add( vec3mul( vec3( d ), dist ), p )
+    local raymin, raymax = vec3bbox( p, rayEnd )
+
     _HitPoints = {}
 
     local r, t, u, v
 
     for _, obj in ipairs( _OBJS ) do
-        if ( obj.solid ) then
-            testmesh( obj, p, d, dist )
+        if ( not obj.solid ) then
+            goto skiprayobj
         end
+
+        local mn, mx = objaabb( obj )
+
+        if ( not AABBAABB( raymin, raymax, mn, mx ) ) then
+            goto skiprayobj
+        end
+
+        testmesh( obj, p, d, dist )
+
+        ::skiprayobj::
     end
 
     local closest
