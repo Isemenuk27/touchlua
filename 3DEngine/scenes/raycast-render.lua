@@ -29,12 +29,12 @@ drawsky = function() end
 local out = {}
 local pcol = { 1, 1, 1, 1 }
 
-_RAYDIST = 8
+_RAYDIST = 9
 
 local x, y = 0, 0
 
 local w, h = Scr()
-local numrayshorizontal = 200
+local numrayshorizontal = 256
 
 local size = w / numrayshorizontal
 local ysize = size * ScrRatio2()
@@ -86,12 +86,13 @@ local function raytrace()
             vec3add( pcol, ( 1 - ( out.dist / _RAYDIST) ) * .2 )
             clamp01( pcol )
 
-            if ( pcol[1] > 0 ) then
-                local sx, sy = x * size, y * ysize
+            --if ( pcol[1] > 0 ) then
+            local sx, sy = x * size, y * ysize
 
-                fillrect( sx, sy, sx + size, sy + ysize, pcol )
-                point( sx, sy + size * 2.2, red )
-            end
+            fillrect( sx, sy, sx + size, sy + ysize, pcol )
+            point( sx, sy + size * 2.2, red )
+            --end
+
             x = x + 1
 
             if ( x == numrayshorizontal ) then
