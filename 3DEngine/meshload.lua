@@ -4,6 +4,9 @@ local tn = tonumber
 local insert = table.insert
 
 local vertexbuffer, form = {}, {}
+local radius = 0
+local maxx, maxy, maxz = math.mininteger, math.mininteger, math.mininteger
+local minx, miny, minz = math.maxinteger, math.maxinteger, math.maxinteger
 
 local function numChars(str, char)
     local count = 0
@@ -17,9 +20,21 @@ local function numChars(str, char)
     return count
 end
 
+local max, min = math.max, math.min
+
 local function writeVertex( a )
     local v_Vtex = vec3( tn( a[2] ), tn( a[3] ), tn( a[4] ) )
     insert( vertexbuffer, v_Vtex )
+
+    maxx = max( v_Vtex[1], maxx )
+    maxy = max( v_Vtex[2], maxy )
+    maxz = max( v_Vtex[3], maxz )
+
+    minx = min( v_Vtex[1], minx )
+    miny = min( v_Vtex[2], miny )
+    minz = min( v_Vtex[3], minz )
+
+    radius = max( vec3mag( v_Vtex ), radius )
 end
 
 local function constructFace( a )
@@ -72,6 +87,10 @@ function loadobj( name )
     end
 
     form, vertexbuffer = {}, {}
+    radius = 0
+    maxx, maxy, maxz = math.mininteger, math.mininteger, math.mininteger
+    minx, miny, minz = math.maxinteger, math.maxinteger, math.maxinteger
+
 
     local vertexbuffer = {}
 
@@ -86,6 +105,35 @@ function loadobj( name )
 
         ::skipobj::
     end
+
+    form.radius = radius
+    form.rawoobb = { vec3( minx, miny, minz ), vec3( maxx, maxy, maxz ) }
+    form.oobb = { vec3(form.rawoobb[1]), vec3(form.rawoobb[2]) }
+
+    local min, max = vec3( form.oobb[1] ), vec3( form.oobb[2] )
+
+    form.rawpoints = {
+        vec3( min[1], max[2], min[3] ),
+        vec3( max[1], max[2], min[3] ),
+        vec3( max[1], min[2], min[3] ),
+        vec3( min[1], min[2], min[3] ),
+
+        vec3( min[1], max[2], max[3] ),
+        vec3( max[1], max[2], max[3] ),
+        vec3( max[1], min[2], max[3] ),
+        vec3( min[1], min[2], max[3] ),
+    }
+
+    form.oobbpoints = {
+        vec3( ),
+        vec3( ),
+        vec3( ),
+        vec3( ),
+        vec3( ),
+        vec3( ),
+        vec3( ),
+        vec3( )
+    }
 
     return form
 end
