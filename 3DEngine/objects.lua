@@ -246,3 +246,22 @@ do
 
     registerclass( C_LIGHT, lightbulb )
 end
+
+local max, min = math.max, math.min
+
+function objaabb( obj )
+    local maxx, maxy, maxz = math.mininteger, math.mininteger, math.mininteger
+    local minx, miny, minz = math.maxinteger, math.maxinteger, math.maxinteger
+
+    for i, v_Vtex in ipairs( obj.form.oobbpoints ) do
+        maxx = max( v_Vtex[1], maxx )
+        maxy = max( v_Vtex[2], maxy )
+        maxz = max( v_Vtex[3], maxz )
+
+        minx = min( v_Vtex[1], minx )
+        miny = min( v_Vtex[2], miny )
+        minz = min( v_Vtex[3], minz )
+    end
+
+    return vec3( minx, miny, minz ), vec3( maxx, maxy, maxz )
+end
