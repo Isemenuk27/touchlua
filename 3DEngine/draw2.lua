@@ -135,7 +135,7 @@ local function text( t, p )
     draw.text( t, x1, y1, draw.white )
 end
 
-function drawaabb( min, max )
+function drawaabb( min, max, col )
     local p = {
         vec3( min[1], max[2], min[3] ),
         vec3( max[1], max[2], min[3] ),
@@ -152,18 +152,22 @@ function drawaabb( min, max )
         text( i, p1 )
     end
 
-    connect( p[1], p[2], draw.cyan )
-    connect( p[2], p[3], draw.cyan )
-    connect( p[3], p[4], draw.cyan )
-    connect( p[4], p[1], draw.cyan )
+    local c1 = col or draw.cyan
+    local c2 = col or draw.red
+    local c3 = col or draw.green
 
-    connect( p[5], p[6], draw.red )
-    connect( p[6], p[7], draw.red )
-    connect( p[7], p[8], draw.red )
-    connect( p[8], p[5], draw.red )
+    connect( p[1], p[2], c1 )
+    connect( p[2], p[3], c1 )
+    connect( p[3], p[4], c1 )
+    connect( p[4], p[1], c1 )
 
-    connect( p[1], p[5], draw.green )
-    connect( p[2], p[6], draw.green )
-    connect( p[3], p[7], draw.green )
-    connect( p[4], p[8], draw.green )
+    connect( p[5], p[6], c2 )
+    connect( p[6], p[7], c2 )
+    connect( p[7], p[8], c2 )
+    connect( p[8], p[5], c2 )
+
+    connect( p[1], p[5], c3 )
+    connect( p[2], p[6], c3 )
+    connect( p[3], p[7], c3 )
+    connect( p[4], p[8], c3 )
 end
