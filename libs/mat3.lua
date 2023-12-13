@@ -95,6 +95,10 @@ function mat3mulxy( m, x, y )
     return nx * nz, ny * nz
 end
 
+function mat3mulvec( m, v )
+    return mat3mulxy( m, v[1], v[2] )
+end
+
 function mat3mul( A, B, O )
   local a = A[0][0] * B[0][0] + A[0][1] * B[1][0] + A[0][2] * B[2][0]
   local b = A[0][0] * B[0][1] + A[0][1] * B[1][1] + A[0][2] * B[2][1]
