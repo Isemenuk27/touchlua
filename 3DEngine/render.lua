@@ -343,7 +343,7 @@ do
                 t_transformed[j] = t_tformed[j]
             end
             if ( _RAYCASTRENDER ) then
-                ::skipface::
+                ::skipface:: -- WTF?
             end
 
             for i, clip in ipairs( _CLIPPLANES ) do
