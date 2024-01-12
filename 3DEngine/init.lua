@@ -1,8 +1,7 @@
-if ( _packagepath ) then
-    package.path = _packagepath
-else
-    package.path = package.path .. ";../?.lua"
+if ( package.pathinit ) then
+    package.path = package.pathinit
 end
+package.path = package.path .. ";../?.lua"
 
 require( "libs/table" )
 require( "libs/math" )
@@ -41,6 +40,7 @@ function memused()
 end
 
 _LOOPCALLBACK = "Scene.Loop"
+_INITCALLBACK = "Scene.Init"
 _RAYDIST = sqrt( 24 * 24 * 24 )
 
 require( "screen" )
@@ -53,38 +53,44 @@ require( "objects" )
 require( "meshload" )
 require( "raycast" )
 require( "sky" )
-require( "mainmenu" )
+
+if ( not _SKIPMENU ) then
+    require( "mainmenu" )
+    package.path = "/usr/local/share/lua/5.3/?.lua;/usr/local/share/lua/5.3/?/init.lua;/usr/local/lib/lua/5.3/?.lua;/usr/local/lib/lua/5.3/?/init.lua;./?.lua;./?/init.lua;../?.lua"
+end
 
 local w, h = Scr()
 local hw, hh = HScr()
 
-local function menuLoop( DT )
-    text( round( 1 / DT, 2 ), 20, 20, red )
-end
-
-while true do
-    local TimeStart = RealTime()
-
-    clear( black )
-
-    draw.doevents()
-
-    if ( FrameTime > 0 ) then
-        menuLoop( FrameTime )
-        GUI.Render()
-        post()
-    else
-        exec( "firstmenuframe", w, h )
+if ( not _SKIPMENU ) then
+    local function menuLoop( DT )
+        text( round( 1 / DT, 2 ), 20, 20, red )
     end
 
-    FrameTime = RealTime() - TimeStart
+    while true do
+        if ( _SCENETOLOAD ) then
+            require( "scenes/" .. _SCENETOLOAD )
+            break
+        end
 
-    if ( _SCENETOLOAD ) then
-        require( "scenes/" .. _SCENETOLOAD )
-        break
+        local TimeStart = RealTime()
+
+        clear( black )
+
+        draw.doevents()
+
+        if ( FrameTime > 0 ) then
+            menuLoop( FrameTime )
+            GUI.Render()
+            post()
+        else
+            exec( "firstmenuframe", w, h )
+        end
+
+        FrameTime = RealTime() - TimeStart
     end
-end
 
+end
 require( "buttons" )
 
 _Player = createclass( C_PLAYER )
@@ -123,7 +129,7 @@ local function Loop( CT, DT )
 
     if ( not _NOSTATS ) then
         text( string.NiceSize( memused() ), w - 130, 20, red )
-        text( string.NiceSize( FrameMem ), w - 130, 50, red )
+        --text( string.NiceSize( FrameMem ), w - 130, 50, red )
 
         text( round( 1 / DT, 2 ), 20, 20, red )
         text( vec3tostring( GetCamPos() ), 20, 60, white )
@@ -133,9 +139,11 @@ local function Loop( CT, DT )
 
 end
 
+exec( _INITCALLBACK )
+
 while true do
     local TimeStart = RealTime()
-    local PreFrameMem = memused()
+    --local PreFrameMem = memused()
 
     draw.doevents()
 
@@ -158,7 +166,7 @@ while true do
         exec( "firstframe" )
     end
 
-    FrameMem = memused() - PreFrameMem
+    --FrameMem = memused() - PreFrameMem
     FrameTime = RealTime() - TimeStart
     CurTime = CurTime + FrameTime
 end
