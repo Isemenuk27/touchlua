@@ -83,10 +83,59 @@ local _HitPoints = {}
 
 local insert = table.insert
 
+local topoint, closestpoint = vec3(), vec3()
+
+local function backfacecull( p, d, face )
+    local diff = vec3sub( vec3( face.tr.og ), p )
+    local dot = vec3dot( diff, face.tr.nr )
+
+    --local x, y = vec3toscreen( face.tr.og )
+    --draw.fillrect( x - 5, y - 5, x + 5, y +5, draw.red )
+    --draw.text( dot, x ,y, draw.white )
+
+    return dot > 0
+end
+
+local function sphereculling( p, d, maxdist, face )
+    local verts = face.tformed
+    local diff = vec3mul( vec3( d ), maxdist )
+    local tricenter = face.tr.og
+
+    local r = -1
+
+    for i = 1, 3 do
+        local nr = vec3distsqr( verts[i], tricenter )
+        if ( nr > r ) then
+            r = nr
+        end
+    end
+
+    vec3set( topoint, tricenter )
+    vec3sub( topoint, p )
+
+    local t = vec3dot( topoint, diff ) / vec3sqrmag( diff )
+
+    --if ( t > 0 and t < 1 ) then
+    vec3set( closestpoint, diff )
+    vec3mul( closestpoint, t )
+    vec3add( closestpoint, p )
+    --end
+
+    return vec3distsqr( closestpoint, tricenter ) < r
+end
+
 local function testmesh( obj, p, d, maxdist )
     for faceid = 1, #obj.form do
         local face = obj.form[faceid]
         local t_verts = face.tformed
+
+        local cull = backfacecull( p, d, face )
+        --cull = cull or sphereculling( p, d, maxdist, face )
+
+        if ( cull ) then
+            goto skipfacetrace
+        end
+
         local hit, t, u, v = ray_tri( p, d, t_verts )
 
         if ( hit and t > 0 and t <= maxdist ) then
@@ -96,6 +145,8 @@ local function testmesh( obj, p, d, maxdist )
 
             insert( _HitPoints, tb )
         end
+
+        ::skipfacetrace::
     end
 end
 
