@@ -2,7 +2,7 @@ if ( not Inited ) then require( "init" ) return end
 
 local _PRECOMPUTENORMALS = false
 local _PRECOMPUTETRIORIGIN = false
-local _DRAWOVERLAY = false
+local _DRAWOVERLAY = not false
 --*******************
 -- Localize variables
 
@@ -343,7 +343,7 @@ do
                 t_transformed[j] = t_tformed[j]
             end
             if ( _RAYCASTRENDER ) then
-                ::skipface:: -- WTF?
+                ::skipface::
             end
 
             for i, clip in ipairs( _CLIPPLANES ) do
@@ -417,9 +417,9 @@ local function renderFaces()
 
         --triBarycentric( x1, y1, x2, y2, x3, y3, t_Drawcol )
 
-        if ( _DRAWOVERLAY ) then
-            triangle( x1, y1, x2, y2, x3, y3, white )
-        end
+        --if ( _DRAWOVERLAY ) then
+        --triangle( x1, y1, x2, y2, x3, y3, white )
+        --end
 
         --[[text( 1, x1, y1, white )
         text( 2, x2, y2, white )
@@ -476,7 +476,7 @@ function render( CT, DT )
     vec3set( CamRight(), R ) --Right
     vec3set( CamUp(), U ) --Up
 
-    if ( not _Frustum.frozen ) then
+    if ( _Frustum and not _Frustum.frozen ) then
         updateFrustum(CT, DT)
     end
 
