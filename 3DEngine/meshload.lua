@@ -80,10 +80,18 @@ local keys = {
 }
 
 function loadobj( name )
-    local f = io.open ( "mesh/" .. name , "r" )
+    local f = io.open( "mesh/" .. name , "r" )
 
     if ( not f ) then
-        f = io.open ( "3DEngine/mesh/" .. name , "r" )
+        f = io.open( "../3DEngine/mesh/" .. name , "r" )
+    end
+
+    if ( not f ) then
+        f = io.open( name , "r" )
+    end
+
+    if ( not f ) then
+        f = io.open( "../mesh/" .. name , "r" )
     end
 
     form, vertexbuffer = {}, {}
