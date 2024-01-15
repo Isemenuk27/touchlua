@@ -258,4 +258,6 @@ function vec2string( v )
     return format( formatvector, v[1], v[2] )
 end
 
+vec2tostring = vec2string
+
 return vec2
