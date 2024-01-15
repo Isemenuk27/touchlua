@@ -9,6 +9,42 @@ end
 
 local cos, sin = math.cos, math.sin
 
+local function farthestPoint( vtx, dir )
+    local max = math.mininteger
+    local index = 0
+
+    for i = 1, #vtx do
+        local dot = vec2dot( vtx[i], dir )
+
+        if ( dot > max ) then
+            max = dot
+            index = i
+        end
+    end
+
+    return vtx[index]
+end
+
+local function farthestPointOposite( vtx, dir )
+    local max = math.maxinteger
+    local index = 0
+
+    for i = 1, #vtx do
+        local dot = vec2dot( vtx[i], dir )
+
+        if ( dot < max ) then
+            max = dot
+            index = i
+        end
+    end
+
+    return vtx[index]
+end
+
+local function supportFunction( vtex1, vtex2, dir )
+    return vec2sub( vec2( farthestPoint( vtex1, dir ) ), farthestPointOposite( vtex2, dir ) )
+end
+
 local ox, oy = 500, 1000
 
 local function GJK( o1, vtex1, o2, vtex2 )
@@ -32,6 +68,26 @@ local function GJK( o1, vtex1, o2, vtex2 )
             draw.circle( ox + p[1], oy + p[2], 10, draw.green )
         end
     end
+    --[[
+    if ( l2 > l1 ) then
+        local ol1, oo1, ovtex1 = l1, o1, vtex1
+
+        l1, o1, vtex1 = l2, o2, vtex2
+        l2, o2, vtex2 = ol1, oo1, ovtex1
+    end
+
+    for i, q in ipairs( vtex1 ) do
+        local p1 = vec2( q )
+        vec2add( p1, o1 )
+        local p2 = vec2( farthestPointOposite( vtex2, q ) )
+        vec2add( p2, o2 )
+
+        local p = vec2sub( vec2( p1 ), p2 )
+
+        pointsset[l] = p
+        l = l + 1
+        draw.circle( ox + p[1], oy + p[2], 10, draw.green )
+    end]]
 
     return pointsset
 end
@@ -75,22 +131,6 @@ local function convexHull( points )
     until( p == l )  -- While we don't come to first point
 
     return hull
-end
-
-local function farthestPoint( vtx, dir )
-    local max = math.mininteger
-    local index = 0
-
-    for i = 1, #vtx do
-        local dot = vec2dot( vtx[i], dir )
-
-        if ( dot > max ) then
-            max = dot
-            index = i
-        end
-    end
-
-    return vtx[index]
 end
 
 local function drawrect( t )
@@ -185,7 +225,7 @@ end ]]
 
     for i in ipairs( hull ) do
         local j = (i%#hull)+1
-        local n = vec2normalto( hull[i], hull[j] )
+        local n = vec2diff( hull[i], hull[j] )
         n = vec2perp( n )
         local dot = vec2dot( n, hull[i] )
 
