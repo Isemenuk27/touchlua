@@ -105,6 +105,11 @@ function vec3lerp( v, v1, v2, fracx, fracy, fracz )
     v[3] = lerp( fracz or fracx, v1[3], v2[3] )
 end
 
+function vec3reflect( dir, nrm, out )
+    local factor = -2 * vec3dot( nrm, dir )
+    return vec3set( out or vec3(), factor * nrm[1] + dir[1], factor * nrm[2] + dir[2], factor * nrm[3] + dir[3] )
+end
+
 function vec3angdir( v, forward, right, up )
     local sr, sp, sy, cr, cp, cy
 
@@ -271,4 +276,3 @@ local format, formatvector = string.format, "vec3( %f, %f, %f )"
 function vec3tostring( v )
     return format( formatvector, v[1], v[2], v[3] )
 end
-
