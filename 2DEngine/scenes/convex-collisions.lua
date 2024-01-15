@@ -102,7 +102,7 @@ local function convexHull( points )
     return hull
 end
 
-local function drawrect( t )
+local function drawpolygon( t )
     local pos = t.pos
     local v = t.vtex
     local c = t.col or draw.white
@@ -111,13 +111,12 @@ local function drawrect( t )
 
     for i = 1, #v do
         local x, y = pos[1] + v[i][1], pos[2] + v[i][2]
-        draw.line( x, y,
-        pos[1] + v[i%#v+1][1], pos[2] + v[i%#v+1][2], c )
+        local j = i%#v+1
+        draw.line( x, y, pos[1] + v[j][1], pos[2] + v[j][2], c )
     end
-    -- draw.rect( pos[1] - hw, pos[2] - hh, pos[1] + hw, pos[2] + hh, t.col )
 end
 
-local rects = {}
+local polygons = {}
 
 local rect1 = {
     pos = vec2( .3, .3 ),
@@ -130,9 +129,9 @@ local rect1 = {
     col = draw.green
 }
 
-table.insert( rects, rect1 )
+table.insert( polygons, rect1 )
 
-table.insert( rects, {
+table.insert( polygons, {
     pos = vec2( 700, 500 ),
     vtex = {
         vec2( -100, 100 ),
@@ -141,7 +140,7 @@ table.insert( rects, {
     }
 } )
 
-table.insert( rects, {
+table.insert( polygons, {
     pos = vec2( 300, 1200 ),
     vtex = {
         vec2( -100, 100 ),
@@ -151,7 +150,7 @@ table.insert( rects, {
     }
 } )
 
-table.insert( rects, {
+table.insert( polygons, {
     pos = vec2( 700, 1200 ),
     vtex = {
         vec2( -100, 100 ),
@@ -164,12 +163,13 @@ table.insert( rects, {
 local function Loop( CT, DT )
     vec2set( rect1.pos, cursor() )
 
-    for i, rect1 in ipairs( rects ) do
-        for j, rect2 in ipairs( rects ) do
-            if ( rect1 == rect2 ) then
+    for i, poly1 in ipairs( polygons ) do
+        for j, poly2 in ipairs( polygons ) do
+            if ( poly1 == poly2 ) then
                 goto skiptest
             end
-            local pointsset = GJK( rect1.pos, rect1.vtex, rect2.pos, rect2.vtex )
+
+            local pointsset = GJK( poly1.pos, poly1.vtex, poly2.pos, poly2.vtex )
             local hull = convexHull( pointsset )
 
             local coll = true
@@ -209,7 +209,7 @@ local function Loop( CT, DT )
                 local d = t[index]
                 --draw.line( ox, oy, ox + d[1], oy + d[2], draw.yellow )
 
-                vec2add( rect2.pos, d )
+                vec2add( poly2.pos, d )
             end
 
             ::skiptest::
@@ -230,8 +230,8 @@ local function Loop( CT, DT )
 
     draw.cross( ox, oy, 10 )
 
-    for i, rect in ipairs( rects ) do
-        drawrect( rect )
+    for i, rect in ipairs( polygons ) do
+        drawpolygon( rect )
     end
 end
 
