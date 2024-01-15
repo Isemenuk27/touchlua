@@ -9,20 +9,6 @@ end
 
 local cos, sin = math.cos, math.sin
 
-function TableConcat(t1,t2)
-    local t = {}
-
-    for i, v in ipairs( t1 ) do
-        t[i] = v
-    end
-
-    for i=1,#t2 do
-        t[#t1+i] = t2[i]
-    end
-
-    return t
-end
-
 local function farthestPoint( vtx, dir )
     local max, index = math.mininteger, o
 
