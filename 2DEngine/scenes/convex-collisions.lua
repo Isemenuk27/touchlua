@@ -161,6 +161,7 @@ table.insert( polygons, {
 } )
 
 local function Loop( CT, DT )
+    --draw.setmatrix( mat3setSc( mat3(), .5, .5 ) )
     vec2set( rect1.pos, cursor() )
 
     for i, poly1 in ipairs( polygons ) do
