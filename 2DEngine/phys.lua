@@ -237,8 +237,8 @@ function phys.bodysim( poly1, CT, DT )
             end
 
             local d = t[index]
-            local n, depth = vec2normalized( d )
-            local a = vec2mul( vec2( n ), depth * .5 )
+            --local n, depth = vec2normalized( d )
+            --local a = vec2mul( vec2( n ), depth * .5 )
 
             vec2sub( poly1.pos, d )
             --vec2add( poly2.pos, a )
@@ -246,7 +246,6 @@ function phys.bodysim( poly1, CT, DT )
             --phys.solve( poly1, poly2, vec2normalized( d ) )
 
             local v = vec2reflected( poly1.vel, vec2normalized( d ) )
-            --vec2mul( v, 1.5 )
             vec2set( poly1.vel, v )
         end
 
@@ -286,13 +285,13 @@ function phys.motionsim( obj, CT, DT )
     vec2add( _ACC, _ADDACC )
     vec2mul( _ACC, DT )
 
-    vec2set( obj.acc, _ACC )
-
     --************************************
     -- Apply Velocity
 
     vec2add( _VEL, _ACC )
     vec2set( obj.vel, _VEL )
+
+    vec2set( obj.acc, _ACC )
 
     --************************************
     -- Apply Position
@@ -325,11 +324,11 @@ function phys.tick( CT, DT )
     for i = 1, phys.objbufferlen do
         local pobj = phys.objectbuffer[i]
 
-        phys.bodysim( pobj, CT, DT )
-
         if ( pobj.frozen == false ) then
             phys.motionsim( pobj, CT, DT )
         end
+
+        phys.bodysim( pobj, CT, DT )
 
         phys.drawform( pobj )
     end
