@@ -34,13 +34,14 @@ local function Init()
 
     Ent = phys.new( circform )
     vec2set( Ent.scl, vec2( .1 ) )
-    vec2set( Ent.pos, vec2( .5 ) )
-    Ent.coef = 1
+    vec2set( Ent.pos, vec2( .5 + .01, .5 ) )
+    Ent.coef = 50
     Ent.ang = .1
+    Ent.gravity = vec2( 0, 9.81 * .01 )
 
     ground = phys.new( rectform )
     vec2set( ground.pos, .5, 1.5 )
-    vec2set( ground.scl, 4, .1 )
+    vec2set( ground.scl, 40, .1 )
     phys.freeze( ground, true )
 end
 
@@ -52,14 +53,13 @@ local function Loop( CT, DT )
 
     --Ent.ang = CT % math.tau
 
-    local a = sign( .5 - Ent.pos[1] )
+    local a = clamp( .5 - Ent.pos[1], -.1, .1 ) * 20
 
-    --ground.ang = ( ground.ang - DT * a ) % math.tau
+    ground.ang = ( ground.ang - DT * a ) % math.tau
 
     local s = math.cos( CT )
 
     mat3setSc( mat, s, s )
-
 
     --[[draw.pushmatrix( mat )
     draw.cross( 0, 0, .1 )
