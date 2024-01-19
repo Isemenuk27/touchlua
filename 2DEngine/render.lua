@@ -14,6 +14,32 @@ local oline = draw.line
 
 local _rotmat, _sclmat, _trsmat = mat2born(), mat2born(), mat2born()
 
+draw.matstack = {}
+draw.matstackl = 0
+
+function draw.pushmatrix( m )
+    draw.matstackl = draw.matstackl + 1
+    draw.matstack[draw.matstackl] = m
+    return draw.matstackl
+end
+
+function draw.popmatrix()
+    local m = draw.matstack[draw.matstackl]
+    draw.matstack[draw.matstackl] = nil
+    draw.matstackl = draw.matstackl - 1
+    return m
+end
+
+draw.pushmatrix( mat3() )
+
+function draw.getmatrix( i )
+    return draw.matstack[i]
+end
+
+function draw.setmatrix( m )
+    draw.matstack[1] = m
+end
+
 function CamAng( a )
     _CamAng = a
     mat2rot( _rotmat, a )
@@ -116,7 +142,6 @@ function linetov( v, col )
     oline( la, lb, a, b, col or white )
     la, lb = a, b
 end
-
 
 local pixelmeter = ScrW()
 local scl = vec2mul( vec2( 1, -1 ), pixelmeter )
