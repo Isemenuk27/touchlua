@@ -93,9 +93,7 @@ function vec2lineprojected( A, _AB, C )
 end
 
 function vec2normalized( v )
-    local vec = vec2( v )
-    vec2normalize( vec )
-    return vec
+    return vec2normalize( vec2( v ) )
 end
 
 function vec2sqrmag( v )
@@ -121,7 +119,7 @@ function vec2normalize( v )
     local il = 1 / l
     v[1] = v[1] * il
     v[2] = v[2] * il
-    return l
+    return v, l
 end
 
 function vec2diff( a, b )
@@ -177,6 +175,10 @@ end
 function vec2sety( v, y )
     v[1] = y
     return v
+end
+
+function vec2unpack( v )
+    return v[1], v[2]
 end
 
 function vec2set( v, x, y )
