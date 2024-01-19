@@ -3,9 +3,9 @@ package.path = package.path .. ";../?.lua"
 require( "libs/table" )
 require( "libs/math" )
 require( "libs/vec2" )
-require( "libs/draw+" )
 require( "libs/stack" )
 require( "libs/mat2" )
+require( "libs/mat3" )
 require( "libs/callback" )
 require( "libs/cursor" )
 require( "libs/2dgui" )
@@ -41,7 +41,9 @@ _LOOPCALLBACK = "Scene.Loop"
 require( "screen" )
 showscreen()
 require( "render" )
+require( "libs/draw+" )
 require( "menu" )
+require( "phys" )
 
 local w, h = Scr()
 local hw, hh = HScr()
@@ -73,10 +75,26 @@ while true do
     FrameTime = RealTime() - TimeStart
 end
 
+function worldcursor()
+    local wtr = mat3( draw.getmatrix( 1 ) )
+    local ctr = mat3()
+
+    local x, y = cursor()
+    mat3setTr( ctr, x, y )
+
+    local m = mat3mul( mat3inv( wtr ), ctr )
+
+    draw.text( mat3tostring( m ), .1, .2 )
+
+    return vec2( mat3getTr( m ) )
+end
+
 local function Loop( CT, DT )
     exec( _LOOPCALLBACK, CT, DT )
     text( round( 1 / DT, 2 ), 20, 20, red )
 end
+
+exec( "Init" )
 
 while true do
     local TimeStart = RealTime()
@@ -93,6 +111,5 @@ while true do
     end
 
     FrameTime = RealTime() - TimeStart
-    CurTime =
-  CurTime + FrameTime
+    CurTime = CurTime + FrameTime
 end
