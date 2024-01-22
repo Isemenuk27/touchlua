@@ -2,6 +2,7 @@ local drawline = draw.line
 local drawrect = draw.rect
 local drawtext = draw.text
 local drawcirc = draw.circle
+local drawftri = draw.filltriangle
 local white = draw.white
 
 local oline, orect, otext, ocirc
@@ -48,6 +49,16 @@ if ( draw.getmatrix ) then
 
         drawcirc( a, b, r, col )
     end
+
+    oftri = function( ax, ay, bx, by, cx, cy, col )
+        for i = draw.matstackl, 1, -1 do
+            local m = draw.getmatrix( i )
+            ax, ay = mat3mulxy( m, ax, ay )
+            bx, by = mat3mulxy( m, bx, by )
+            cx, cy = mat3mulxy( m, cx, cy )
+        end
+        drawftri( ax, ay, bx, by, cx, cy, col )
+    end
 else
     oline, orect, otext, ocirc = draw.line, draw.rect, draw.text, draw.circle
 end
@@ -81,9 +92,17 @@ local function circle( ox, oy, r, col )
     return ocirc( ox, oy, r, col or white )
 end
 
+local function filltri( ax, ay, bx, by, cx, cy, col )
+    if ( istable( ox ) ) then
+        ax, ay, bx, by, cx, cy, col = ax[1], ax[2], ay[1], ay[2], bx[1], bx[2], by
+    end
+    oftri( ax, ay, bx, by, cx, cy, col or white )
+end
+
 do
     draw.line = line
     draw.cross = cross
     draw.text = text
     draw.circle = circle
+    draw.filltriangle = filltri
 end
