@@ -2,4 +2,4 @@
 My scripts written for Touch Lua ( 1.2.5 )
 Many scripts require draw library.
 
-![IMG_20240122_101845](https://github.com/Isemenuk27/touchlua/assets/77487254/244b0cb8-eb6f-4bc0-88b9-87439470bb12)
+![IMG1](https://github.com/Isemenuk27/touchlua/blob/c2a6bb2f8c2890a6bb9f0c02faf5e54dc569c287/screenshots/IMG_20240115_100848.jpg)
