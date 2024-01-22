@@ -99,49 +99,56 @@ function mat3mulvec2( m, v )
     return mat3mulxy( m, v[1], v[2] )
 end
 
-function mat3inv( m, o )
-    --[[
-    local det = m[0][0] * ( m[1][1] * m[2][2] - m[2][1] * m[1][2] ) -
-    m[0][1] * ( m[1][0] * m[2][2] - m[1][2] * m[2][0] ) +
-    m[0][2] * ( m[1][0] * m[2][1] - m[1][1] * m[2][0] )
+function mat3setSheer( m, v )
+    m[1][0] = v[1]
+    m[0][1] = v[2]
+end
 
-    local invdet = 1 / det
+function inverse3x3(matrix)
+    local det = matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1]) -
+    matrix[0][1] * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0]) +
+    matrix[0][2] * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0])
 
-    local a = ( m[1][1] * m[2][2] - m[2][1] * m[1][2] ) * invdet
-    local b = ( m[0][2] * m[2][1] - m[0][1] * m[2][2] ) * invdet
-    local c = ( m[0][1] * m[1][2] - m[0][2] * m[1][1] ) * invdet
+    local invDet = 1 / det
 
-    local d = ( m[1][2] * m[2][0] - m[1][0] * m[2][2] ) * invdet
-    local e = ( m[0][0] * m[2][2] - m[0][2] * m[2][0] ) * invdet
-    local f = ( m[1][0] * m[0][2] - m[0][0] * m[1][2] ) * invdet
+    local result = {}
+    for i = 0, 2 do
+        result[i] = {}
+        for j = 0, 2 do
+            local cofactor = matrix[(j + 1) % 3][(i + 1) % 3] * matrix[(j + 2) % 3][(i + 2) % 3] -
+            matrix[(j + 2) % 3][(i + 1) % 3] * matrix[(j + 1) % 3][(i + 2) % 3]
 
-    local g = ( m[1][0] * m[2][1] - m[2][0] * m[1][1] ) * invdet
-    local h = ( m[2][0] * m[0][1] - m[0][0] * m[2][1] ) * invdet
-    local i = ( m[0][0] * m[1][1] - m[1][0] * m[0][1] ) * invdet
-
-    return mat3set( o or mat3(), a, b, c, d, e, f, g, h, i )
-]]
-    if ( not o ) then
-        o = mat4()
+            result[i][j] = cofactor * invDet
+        end
     end
 
-    local a = m[0][0] -- o[0][0]
-    local b = m[1][0] -- o[0][1]
-    local c = m[2][0] -- o[0][2]
+    return result
+end
 
-    local d = m[0][1] -- o[1][0]
-    local e = m[1][1] -- o[1][1]
-    local f = m[2][1] -- o[1][2]
+function mat3inv( m, o )
+    if ( not o ) then
+        o = mat3()
+    end
 
-    local g = m[0][2] -- o[2][0]
-    local h = m[1][2] -- o[2][1]
-    local i = m[2][2] -- o[2][2]
+    local det = m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) -
+    m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) +
+    m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0])
 
-    o[3][0] = -(m[3][0] * o[0][0] + m[3][1] * o[1][0] + m[3][2] * o[2][0])
-    o[3][1] = -(m[3][0] * o[0][1] + m[3][1] * o[1][1] + m[3][2] * o[2][1])
-    o[3][2] = -(m[3][0] * o[0][2] + m[3][1] * o[1][2] + m[3][2] * o[2][2])
+    local invDet = 1 / det
 
-    return o
+    local a = (m[1][1] * m[2][2] - m[1][2] * m[2][1]) * invDet
+    local b = (m[0][2] * m[2][1] - m[0][1] * m[2][2]) * invDet
+    local c = (m[0][1] * m[1][2] - m[0][2] * m[1][1]) * invDet
+
+    local d = (m[1][2] * m[2][0] - m[1][0] * m[2][2]) * invDet
+    local e = (m[0][0] * m[2][2] - m[0][2] * m[2][0]) * invDet
+    local f = (m[0][2] * m[1][0] - m[0][0] * m[1][2]) * invDet
+
+    local g = (m[1][0] * m[2][1] - m[1][1] * m[2][0]) * invDet
+    local h = (m[0][1] * m[2][0] - m[0][0] * m[2][1]) * invDet
+    local i = (m[0][0] * m[1][1] - m[0][1] * m[1][0]) * invDet
+
+    return mat3set( o, a, b, c, d, e ,f, g, h, i )
 end
 
 function mat3mul( A, B, O )
