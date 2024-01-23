@@ -14,7 +14,7 @@ local cfg = {
     nobackwardmove = true, --disallow to move backwards freely
     allqueens = false, --make every unit a queen at start
     move8 = false, --ability to move in any direction
-
+    size = 8
 }
 
 local function rgb( r, g, b )
@@ -47,7 +47,7 @@ end
 
 local t_checkers, t_tiles = {}, {}
 
-local tiles = 8
+local tiles = cfg.size
 local size = 1
 
 local function drawtile( x, y, c )
@@ -76,6 +76,7 @@ local function drawboard( CT, DT )
     for y = 0, tiles - 1 do
         local col = ( y % 2 == 1 ) and bg1 or bg2
         drawtile( -1, y, col )
+        draw.text( y + 1, -.5, y + .5 )
     end
 
     for y = 0, tiles do
@@ -88,14 +89,15 @@ local function drawboard( CT, DT )
     draw.pushmatrix( m2 )
     for x = 0, tiles - 1 do
         local col = ( x % 2 == 0 ) and bg1 or bg2
-        drawtile( tiles * sheer + x, tiles, col )
+        drawtile( tiles + x, tiles, col )
+        draw.text( string.char(65+x), tiles + x + .5, tiles + .5 )
     end
 
     for x = 0, tiles do
-        draw.line( tiles * sheer + x, tiles, tiles + x, tiles+1, c )
+        draw.line( tiles + x, tiles, tiles + x, tiles+1, c )
     end
 
-    draw.line( tiles * sheer, tiles+1, tiles + tiles, tiles+1, c )
+    draw.line( tiles, tiles+1, tiles + tiles, tiles+1, c )
 
     draw.popmatrix()
 end
@@ -185,7 +187,7 @@ function CMoveTile:gettarget( t )
 end
 
 local function pointoutboard( x, y )
-    return ( x < 0 or x > 7 ) or ( y < 0 or y > 7 )
+    return ( x < 0 or x > cfg.size - 1 ) or ( y < 0 or y > cfg.size - 1)
 end
 
 local tdir = {
@@ -337,7 +339,7 @@ function CChecker:kill()
 
     local i = tFrags[opositeteam(self.team) ]
     tFrags[ opositeteam(self.team) ] = i + 1
-    local x, y = i % 8, math.floor( i / 8 )
+    local x, y = i % tiles, math.floor( i / tiles )
 
     if ( self.team ~= T_WHITE ) then
         y = -2 - y
@@ -380,24 +382,24 @@ local function ResetGame()
     tFrags[T_BLACK] = 0
     TeamTurn = T_WHITE
 
-    for i = 0, 8 * 3 - 1, 2 do
-        local y = math.floor( i / 8 )
+    for i = 0, tiles * 3 - 1, 2 do
+        local y = math.floor( i / tiles )
         i = i + ( y % 2 )
 
         local checker = CChecker.new()
         table.insert( t_checkers, checker )
-        checker:setPos( vec2( i % 8, y ) )
+        checker:setPos( vec2( i % tiles, y ) )
         checker:setTeam( T_WHITE )
         checker:spawn()
     end
 
-    for i = 8 * 3 - 1, 0, -2 do
-        local y = math.floor( i / 8 )
+    for i = tiles * 3 - 1, 0, -2 do
+        local y = math.floor( i / tiles )
         i = i + ( y % 2 )
 
         local checker = CChecker.new()
         table.insert( t_checkers, checker )
-        checker:setPos( vec2( i % 8, 7 - y ) )
+        checker:setPos( vec2( i % tiles, tiles - 1 - y ) )
         checker:setTeam( T_BLACK )
         checker:spawn()
     end
