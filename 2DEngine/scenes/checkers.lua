@@ -7,6 +7,16 @@ if ( not Inited ) then
     return require("2DEngine/init")
 end
 
+--[[          Config                 ]]
+
+local cfg = {
+    forceattack = true, --if attack is possible make it only valid move
+    nobackwardmove = true, --disallow to move backwards freely
+    allqueens = false, --make every unit a queen at start
+    move8 = false, --ability to move in any direction
+
+}
+
 local function rgb( r, g, b )
     return { r / 255, g / 255, b / 255, 1 }
 end
@@ -48,8 +58,10 @@ end
 local m1 = mat3()
 local m2 = mat3()
 
-mat3setSheer( m1, vec2( 0, -1 ) )
-mat3setSheer( m2, vec2( -1, 0 ) )
+local sheer = 1
+
+mat3setSheer( m1, vec2( 0, -sheer ) )
+mat3setSheer( m2, vec2( -sheer, 0 ) )
 
 local function drawboard( CT, DT )
     for i = 0, tiles * tiles - 1 do
@@ -76,13 +88,14 @@ local function drawboard( CT, DT )
     draw.pushmatrix( m2 )
     for x = 0, tiles - 1 do
         local col = ( x % 2 == 0 ) and bg1 or bg2
-        drawtile( tiles + x, tiles, col )
+        drawtile( tiles * sheer + x, tiles, col )
     end
 
     for x = 0, tiles do
-        draw.line( tiles + x, tiles, tiles + x, tiles+1, c )
+        draw.line( tiles * sheer + x, tiles, tiles + x, tiles+1, c )
     end
-    draw.line( tiles, tiles+1, tiles + tiles, tiles+1, c )
+
+    draw.line( tiles * sheer, tiles+1, tiles + tiles, tiles+1, c )
 
     draw.popmatrix()
 end
@@ -140,10 +153,22 @@ function CMoveTile:link( cheker )
     self.linked = cheker
 end
 
-local selecttilecol = { .8, 0, 0, .5 }
+local selecttilecol = { .2, 0, 1, .5 }
 
 function CMoveTile:draw()
     drawtile( self.pos[1], self.pos[2], selecttilecol )
+
+    if ( self.target ) then
+        for i = 0, 1, .1 do
+            draw.line( self.pos[1] + i, self.pos[2], self.pos[1], self.pos[2] + i, draw.gray )
+        end
+
+        for i = 0, 1, .1 do
+            draw.line( self.pos[1] + i, self.pos[2] + 1, self.pos[1] + 1, self.pos[2] + i, draw.gray )
+        end
+    end
+
+    --draw.text( tostring(self.target), self.pos[1], self.pos[2] )
 end
 
 function CMoveTile:remove()
@@ -153,6 +178,10 @@ end
 
 function CMoveTile:settarget( t )
     self.target = t
+end
+
+function CMoveTile:gettarget( t )
+    return self.target
 end
 
 local function pointoutboard( x, y )
@@ -165,6 +194,19 @@ local tdir = {
     vec2( 1, -1 ),
     vec2( -1, -1 )
 }
+
+if ( cfg.move8 ) then
+    tdir = {
+        vec2( -1, 1 ),
+        vec2( 0, 1 ),
+        vec2( 1, 1 ),
+        vec2( 1, 0 ),
+        vec2( 1, -1 ),
+        vec2( 0, -1 ),
+        vec2( -1, -1 ),
+        vec2( -1, 0 )
+    }
+end
 
 local function getintile( v )
     for i, checker in ipairs( t_checkers ) do
@@ -188,8 +230,9 @@ local queenypos = {
 
 function ConstructMoveTiles( checker )
     local ox, oy = vec2unpack( checker.pos )
+    local killnontarget = false
 
-    for i = 1, 4 do
+    for i in ipairs( tdir ) do
         local numsteps = ( checker.queen == true ) and 13 or 1
         local curp = vec2( ox, oy )
         local killtarget = false
@@ -214,7 +257,7 @@ function ConstructMoveTiles( checker )
                     end
                 else
                     if ( not checker.queen and not killtarget ) then
-                        if ( dot < 0 ) then
+                        if ( cfg.nobackwardmove and dot < 0 ) then
                             numsteps = 0
                             goto skip
                         end
@@ -224,6 +267,11 @@ function ConstructMoveTiles( checker )
                     tile:setPos( curp )
                     tile:link( checker )
                     tile:settarget( killtarget )
+
+                    if ( killtarget ~= false ) then
+                        killnontarget = true
+                    end
+
                     table.insert( t_tiles, tile )
 
                     numsteps = numsteps - 1
@@ -233,6 +281,19 @@ function ConstructMoveTiles( checker )
             ::skip::
 
         until numsteps < 1
+    end
+
+    if ( cfg.forceattack and killnontarget ) then
+        local nt = {}
+        for i, tile in ipairs( t_tiles ) do
+            if ( tile:gettarget() == false ) then
+                tile:remove()
+            else
+                table.insert( nt, tile )
+            end
+        end
+
+        t_tiles = nt
     end
 end
 
@@ -247,7 +308,7 @@ function CChecker.new()
         team = 0,
         selected = false,
         inactive = false,
-        queen = false,
+        queen = cfg.allqueens or false,
     }, CChecker )
     return checker
 end
@@ -379,8 +440,9 @@ local function Loop( CT, DT )
     mat3mul( cursormat, invm, cursormat )
 
     local cx, cy = mat3mulxy( cursormat, cursor() )
+    local mx, my = math.floor( cx ), math.floor( cy )
 
-    if ( pointoutboard( cx, cy ) ) then
+    if ( pointoutboard( mx, my ) ) then
         mat3addTr( isomat, dx, dy )
     end
 
@@ -388,7 +450,6 @@ local function Loop( CT, DT )
 
     drawboard( CT, DT )
 
-    local mx, my = math.floor( cx ), math.floor( cy )
     local col = draw.purple
 
     --************
@@ -463,4 +524,3 @@ callback( "touch.end", touchend )
 
 callback( _LOOPCALLBACK, Loop )
 callback( "Init", Init )
-
