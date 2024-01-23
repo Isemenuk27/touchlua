@@ -94,6 +94,7 @@ local function Loop( CT, DT )
     text( round( 1 / DT, 2 ), 20, 20, red )
 end
 
+bg_color = { 0, 0, 0, 1 }
 exec( "Init" )
 
 while true do
@@ -101,11 +102,12 @@ while true do
 
     draw.doevents()
 
-    clear( black )
+    clear( bg_color )
 
     if ( CurTime > 0 ) then
         Loop( CurTime, FrameTime )
         post()
+        cursorcleardelta()
     else
         exec( "firstframe" )
     end
