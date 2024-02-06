@@ -1,5 +1,6 @@
 package.path = package.path .. ";../?.lua"
 
+require( "libs/globals" )
 require( "libs/table" )
 require( "libs/math" )
 require( "libs/vec2" )
@@ -7,13 +8,22 @@ require( "libs/stack" )
 require( "libs/mat2" )
 require( "libs/mat3" )
 require( "libs/callback" )
-require( "libs/cursor" )
-require( "libs/2dgui" )
+require( "libs/baseclass" )
+--require( "libs/cursor" )
+require( "libs/cursor+" )
+if ( not NO2DGUI ) then
+    require( "libs/2dgui" )
+end
+if ( GUIPLUS ) then --WIP
+    require( "libs/2DGUI+" )
+end
 require( "libs/string" )
 
 --**********************
 
 Inited = 1
+bg_color = { 0, 0, 0, 1 }
+bg_clear = true
 
 local clear, post = draw.clear, draw.post
 local white, black, green = draw.white, draw.black, draw.green
@@ -22,7 +32,6 @@ local red = draw.red
 local cos, sin, tan, max, min = math.cos, math.sin, math.tan, math.max, math.min
 local acos, asin, atan = math.acos, math.asin, math.atan
 local abs, floor, ceil, rad, deg = math.abs, math.floor, math.ceil, math.rad, math.deg
-FrameMem, FrameTime, CurTime, RealTime = 0, 0, 0, sys.gettime
 local sqrt, random, pi, hpi = math.sqrt, math.random, math.pi, math.pi * .5
 
 local fillrect, text = draw.fillrect, draw.text
@@ -52,27 +61,29 @@ local function menuLoop( DT )
     text( round( 1 / DT, 2 ), 20, 20, red )
 end
 
+local dt = 0
+
 while true do
     if ( _SCENETOLOAD ) then
         require( "scenes/" .. _SCENETOLOAD )
         break
     end
 
-    local TimeStart = RealTime()
+    local t = sys.gettime()
 
     clear( black )
 
     draw.doevents()
 
-    if ( FrameTime > 0 ) then
-        menuLoop( FrameTime )
+    if ( dt > 0 ) then
+        menuLoop( dt )
         GUI.Render()
         post()
     else
         exec( "firstmenuframe", w, h )
     end
 
-    FrameTime = RealTime() - TimeStart
+    dt = sys.gettime() - t
 end
 
 function worldcursor()
@@ -91,27 +102,37 @@ end
 
 local function Loop( CT, DT )
     exec( _LOOPCALLBACK, CT, DT )
-    text( round( 1 / DT, 2 ), 20, 20, red )
+    draw.ftext( round( 1 / DT, 2 ), w * .02, h * .01, TEXT_RIGHT, TEXT_MIDDLE, red, ScrH() * .01 )
 end
 
-bg_color = { 0, 0, 0, 1 }
 exec( "Init" )
 
 while true do
-    local TimeStart = RealTime()
+    frameBegin()
 
     draw.doevents()
 
-    clear( bg_color )
+    if ( bg_clear ) then
+        clear( bg_color )
+    end
 
-    if ( CurTime > 0 ) then
-        Loop( CurTime, FrameTime )
+    if ( curtime() > 0 ) then
+        Loop( curtime(), deltatime() )
+        if ( GUI ) then
+            GUI.Render()
+        end
+        if ( GUIPLUS ) then
+            gui.think( curtime(), deltatime() )
+        end
         post()
-        cursorcleardelta()
+        if ( cursorcleardelta ) then
+            cursorcleardelta()
+        else
+            cursor.clearDelta( true )
+        end
     else
         exec( "firstframe" )
     end
 
-    FrameTime = RealTime() - TimeStart
-    CurTime = CurTime + FrameTime
+    frameEnd()
 end
