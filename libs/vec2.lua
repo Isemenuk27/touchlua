@@ -1,7 +1,7 @@
 local sqrt, atan, abs = math.sqrt, math.atan, math.abs
 local cos, sin, tan = math.cos, math.sin, math.tan
 local TABLE, type = "table", type
-local _EPS = 0.0001
+local _EPS = 0.0000001
 local function istable( t )
     return type( t ) == TABLE
 end
@@ -122,9 +122,8 @@ function vec2normalize( v )
     return v, l
 end
 
-function vec2diff( a, b )
-    local v = vec2( b[1] - a[1], b[2] - a[2] )
-    return v
+function vec2diff( a, b, c )
+    return vec2set( c or vec2(), b[1] - a[1], b[2] - a[2] )
 end
 
 function vec2normalto( s, e )
