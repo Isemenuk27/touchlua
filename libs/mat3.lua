@@ -21,7 +21,7 @@ function mat3identity( m )
     return mat3set( m, 1, 0, 0, 0, 1, 0, 0, 0, 1 )
 end
 
-function mat3unack( m )  -- unpack??
+function mat3unack( m )
     return m[0][0], m[0][1], m[0][2], m[1][0], m[1][1], m[1][2], m[2][0], m[2][1], m[2][2]
 end
 
