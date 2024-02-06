@@ -1,30 +1,31 @@
 if ( not Inited ) then require( "init" ) return end
 
-local w, h, hw, hh, ratio
+local w, h, hw, hh, ratio, ratio2
 
 function showscreen()
     draw.showdrawscreen()
     w, h = draw.getdrawsize()
     hw, hh = w  * .5, h * .5
     ratio  = h / w
+    ratio2 = w / h
 
     exec( "screen" )
 end
 
-function ScrW()
-    return w
+function ScrW( m )
+    return w * ( m or 1 )
 end
 
-function ScrH()
-    return h
+function ScrH( m )
+    return h * ( m or 1 )
 end
 
-function HScrW()
-    return hw
+function HScrW( m )
+    return hw * ( m or 1 )
 end
 
-function HScrH()
-    return hw
+function HScrH( m )
+    return hh * ( m or 1 )
 end
 
 function Scr()
@@ -36,6 +37,9 @@ function HScr()
 end
 
 function ScrRatio()
-    return
-	ratio
+    return ratio
+end
+
+function ScrRatio2()
+    return ratio2
 end
