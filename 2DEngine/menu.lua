@@ -39,5 +39,4 @@ local function menucreate( w, h )
     end
 end
 
-callback( "firstmenuframe", 
-  menucreate )
+callback( "firstmenuframe", menucreate )
