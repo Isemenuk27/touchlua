@@ -5,6 +5,8 @@ GUI.elements = {}
 GUI.RegisteredElements = {}
 GUI.TotalRegistered = 0
 
+local cursorplus = type( cursor ) == "table"
+
 local white, black, green, red, gray = draw.white, draw.black, draw.green, draw.red, draw.gray
 local cos, sin, tan, max, min = math.cos, math.sin, math.tan, math.max, math.min
 local acos, asin, atan = math.acos, math.asin, math.atan
@@ -21,12 +23,22 @@ function GUI.Render()
 end
 
 function GUI.Touch( t )
-    GUI.cursors[t.id] = { x = t.x, y = t.y, dx = 0, dy = 0 }
+    local nTId, nX, nY
+
+    if ( cursorplus ) then
+        local cCursor = cursor.getCursor( t )
+        nTId = cCursor.id
+        nX, nY = vec2unpack( cCursor.pos )
+    else
+        nTId, nX, nY = t.id, t.x, t.y
+    end
+
+    GUI.cursors[nTId] = { x = nX, y = nY, dx = 0, dy = 0 }
 
     for _, e in pairs( GUI.elements ) do
         if ( not e._pressed ) then
-            if ( e:Test( t.x, t.y ) ) then
-                e._pressed = t.id
+            if ( e:Test( nX, nY ) ) then
+                e._pressed = nTId
                 if ( e.Press ) then
                     e:Press()
                 end
@@ -36,15 +48,25 @@ function GUI.Touch( t )
 end
 
 function GUI.Moved( t )
-    GUI.cursors[t.id].dx = t.x - GUI.cursors[t.id].x
-    GUI.cursors[t.id].dy = t.y - GUI.cursors[t.id].y
+    local nTId, nX, nY
 
-    GUI.cursors[t.id].x = t.x
-    GUI.cursors[t.id].y = t.y
+    if ( cursorplus ) then
+        local cCursor = cursor.getCursor( t )
+        nTId = cCursor.id
+        nX, nY = vec2unpack( cCursor.pos )
+    else
+        nTId, nX, nY = t.id, t.x, t.y
+    end
+
+    GUI.cursors[nTId].dx = nX - GUI.cursors[nTId].x
+    GUI.cursors[nTId].dy = nY - GUI.cursors[nTId].y
+
+    GUI.cursors[nTId].x = nX
+    GUI.cursors[nTId].y = nY
 
     for _, e in ipairs( GUI.elements ) do
         if ( e._pressed and e.Moved ) then
-            e:Moved( GUI.cursors[t.id].dx, GUI.cursors[t.id].dy )
+            e:Moved( GUI.cursors[nTId].dx, GUI.cursors[nTId].dy )
         end
 
         local hovered = nil
@@ -60,20 +82,35 @@ function GUI.Moved( t )
 end
 
 function GUI.Stop( t )
+    local nTId, nX, nY
+
+    if ( cursorplus ) then
+        local cCursor = cursor.getCursor( t )
+        nTId = cCursor.id; nX, nY = vec2unpack( cCursor.pos )
+    else
+        nTId, nX, nY = t.id, t.x, t.y
+    end
+
     for _, e in ipairs( GUI.elements ) do
-        if ( e._pressed and e._pressed == t.id ) then
+        if ( e._pressed and e._pressed == nTId ) then
             if ( e.Release ) then e:Release() end
             e._pressed = nil
         end
     end
 
-    GUI.cursors[t.id] = nil
+    GUI.cursors[nTId] = nil
 end
 
 if ( callback ) then
-    callback( "touch.start", GUI.Touch )
-    callback( "touch.move", GUI.Moved )
-    callback( "touch.end", GUI.Stop )
+    if ( not cursorplus ) then
+        callback( "touch.start", GUI.Touch )
+        callback( "touch.move", GUI.Moved )
+        callback( "touch.end", GUI.Stop )
+    else
+        callback( cursor.tCallbacks.began, GUI.Touch )
+        callback( cursor.tCallbacks.moved, GUI.Moved )
+        callback( cursor.tCallbacks.ended, GUI.Stop )
+    end
 else
     draw.touchbegan = GUI.Touch
     draw.touchmoved = GUI.Moved
