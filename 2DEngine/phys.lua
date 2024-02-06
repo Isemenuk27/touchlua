@@ -8,8 +8,22 @@ phys = {
     debugcol = { .7, .7, .7, 1 },
 }
 
+local CBody = {}
+CBody.__index = CBody
+CBody.gravmul = 1
+
+function CBody:precollide( pobj, d )
+    return true
+end
+
+function CBody:postcollide( pobj, d )
+    local v = vec2reflected( self.vel, vec2normalized( d ) )
+    vec2set( self.vel, v )
+    return
+end
+
 function phys.new( form )
-    local pobj = {
+    local pobj = setmetatable( {
         pos = vec2(),
         ang = 0,
         vel = vec2(),
@@ -20,9 +34,10 @@ function phys.new( form )
         frozen = false,
         elasticity = .5,
         coef = 1,
-        mass = 10,
+        mass = 1,
+        nodrag = not false,
         radius = phys.maxradius( form )
-    }
+    }, CBody )
 
     for i = 1, #pobj.vtex do
         pobj.vtex_t[i] = vec2()
@@ -240,13 +255,16 @@ function phys.bodysim( poly1, CT, DT )
             --local n, depth = vec2normalized( d )
             --local a = vec2mul( vec2( n ), depth * .5 )
 
-            vec2sub( poly1.pos, d )
+            if ( poly1:precollide( poly2, d ) ) then
+                vec2sub( poly1.pos, d )
+            end
             --vec2add( poly2.pos, a )
-
             --phys.solve( poly1, poly2, vec2normalized( d ) )
 
-            local v = vec2reflected( poly1.vel, vec2normalized( d ) )
-            vec2set( poly1.vel, v )
+            poly1:postcollide( poly2, d )
+
+            --local v = vec2reflected( poly1.vel, vec2normalized( d ) )
+            --vec2set( poly1.vel, v )
         end
 
         ::skiptest::
@@ -254,7 +272,7 @@ function phys.bodysim( poly1, CT, DT )
 end
 
 function phys.motionsim( obj, CT, DT )
-    vec2set( _ACC, obj.acc )
+    vec2set( _ACC, 0, 0 ) --obj.acc )
     vec2set( _VEL, obj.vel )
 
     vec2set( _DIR, _VEL )
@@ -264,19 +282,21 @@ function phys.motionsim( obj, CT, DT )
     -- Gravity
 
     vec2set( _ADDACC, obj.gravity or phys.gravity )
-    vec2mul( _ADDACC, obj.mass )
+    vec2mul( _ADDACC, obj.mass * obj.gravmul )
 
     --************************************
     -- Drag
 
-    local v = vec2sqrmag( _VEL )
+    if ( not obj.nodrag ) then
+        local v = vec2sqrmag( _VEL )
 
-    vec2set( _DRAG, _DIR )
+        vec2set( _DRAG, _DIR )
 
-    local Area = math.pi * ( obj.radius * obj.radius ) * vec2mag( obj.scl )
-    local DragF = phys.airdensity * obj.coef * v * Area * .5
-    vec2mul( _DRAG, DragF )
-    vec2sub( _ADDACC, _DRAG )
+        local Area = math.pi * ( obj.radius * obj.radius ) * vec2mag( obj.scl )
+        local DragF = phys.airdensity * obj.coef * v * Area * .5
+        vec2mul( _DRAG, DragF )
+        vec2sub( _ADDACC, _DRAG )
+    end
 
     --************************************
     -- Apply Acceleration
@@ -290,8 +310,6 @@ function phys.motionsim( obj, CT, DT )
 
     vec2add( _VEL, _ACC )
     vec2set( obj.vel, _VEL )
-
-    vec2set( obj.acc, _ACC )
 
     --************************************
     -- Apply Position
