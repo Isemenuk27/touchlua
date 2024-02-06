@@ -14,7 +14,7 @@ local cfg = {
     nobackwardmove = true, --disallow to move backwards freely
     allqueens = false, --make every unit a queen at start
     move8 = false, --ability to move in any direction
-    size = 8
+    size = 8, --board width and height
 }
 
 local function rgb( r, g, b )
@@ -307,6 +307,7 @@ CChecker.__index = CChecker
 function CChecker.new()
     local checker = setmetatable( {
         pos = vec2(),
+        drawpos = vec2(),
         team = 0,
         selected = false,
         inactive = false,
@@ -354,18 +355,24 @@ function CChecker:select()
     ConstructMoveTiles( self )
 end
 
-function CChecker:draw()
+function CChecker:draw( DT )
+    --if ( not vec2similar( self.drawpos, self.pos, .00000000001 ) ) then
+    vec2approach( self.drawpos, self.pos, DT * 20 )
+    --end
+
+    local pos = self.drawpos
+
     if ( not self.inactive and TeamTurn == self.team ) then
         local c = tCol[opositeteam( self.team )]
-        draw.meshcircle( self.pos[1] + .5, self.pos[2] + .5, .5, c, 16 )
+        draw.meshcircle( pos[1] + .5, pos[2] + .5, .5, c, 16 )
     end
 
-    draw.meshcircle( self.pos[1] + .5, self.pos[2] + .5, .45, self.selected and draw.yellow or tCol[self.team], 16 )
+    draw.meshcircle( pos[1] + .5, pos[2] + .5, .45, self.selected and draw.yellow or tCol[self.team], 16 )
 
     if ( self.queen ) then
         local c = tCol[opositeteam(self.team)]
         local a = .25 * .5
-        local x, y = self.pos[1], self.pos[2]
+        local x, y = pos[1], pos[2]
         for i = .25, .75, .25 do
             draw.filltriangle( x + i - a, y + .6, x + i + a, y + .6, x + i, y + .3, c )
         end
@@ -408,7 +415,7 @@ end
 local isomat, cam
 
 local function Init()
-    bg_color = { .5, .5, .5, 1 }
+    bg_color = { .3, .3, .3, 1 }
     isomat = mat3()
 
     local a = ( 3 ^ .5 ) / 8
@@ -431,17 +438,16 @@ local function Loop( CT, DT )
     local a = ( 1 + math.cos( CT * 12 ) * .5 )
     selecttilecol[4] = .4 + a * .2
     local cursormat = mat3()
-    local mx, my = cursor()
 
     local invcam = mat3inv( cam, mat3() )
     local invm = mat3inv( isomat, mat3() )
 
     mat3mul( cursormat, invcam, cursormat )
-    local dx, dy = mat3mulxy( cursormat, cursordeltax(), cursordeltay() )
+    local dx, dy = mat3mulxy( cursormat, cursor.delta2() )
 
     mat3mul( cursormat, invm, cursormat )
 
-    local cx, cy = mat3mulxy( cursormat, cursor() )
+    local cx, cy = mat3mulxy( cursormat, cursor.pos2() )
     local mx, my = math.floor( cx ), math.floor( cy )
 
     if ( pointoutboard( mx, my ) ) then
@@ -463,7 +469,7 @@ local function Loop( CT, DT )
     end
 
     for i, checker in ipairs( t_checkers ) do
-        checker:draw()
+        checker:draw( DT )
     end
 
     --************
@@ -473,7 +479,7 @@ local function Loop( CT, DT )
     draw.popmatrix()
 end
 
-local function touchend()
+local function touchend( nId )
     local cursormat = mat3()
     local invcam = mat3inv( cam, mat3() )
     local invm = mat3inv( isomat, mat3() )
@@ -481,7 +487,7 @@ local function touchend()
     mat3mul( cursormat, invcam, cursormat )
     mat3mul( cursormat, invm, cursormat )
 
-    local cx, cy = mat3mulxy( cursormat, cursor() )
+    local cx, cy = mat3mulxy( cursormat, cursor.pos2( nId ) )
     local mx, my = math.floor( cx ), math.floor( cy )
 
     local selection = false
@@ -522,7 +528,7 @@ local function touchend()
     end
 end
 
-callback( "touch.end", touchend )
+callback( cursor.tCallbacks.ended, touchend )
 
 callback( _LOOPCALLBACK, Loop )
 callback( "Init", Init )
