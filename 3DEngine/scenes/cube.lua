@@ -9,7 +9,7 @@ end
 
 local obj = createclass( C_POLY )
 obj:born()
-obj.form = loadobj( "cube.obj" )
+obj.form = loadModel( "cube.mdl" ) --Compile first
 obj.scl = vec3( .5 )
 obj.ang = vec3( 0, 0, 0 )
 obj.solid = true
