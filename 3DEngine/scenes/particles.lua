@@ -10,10 +10,12 @@ end
 local emiterpos = vec3( 0, 5, 0 )
 local _PARTICLES = {}
 
+local tCubeForm = loadModel( "cube.mdl" )
+
 local function newParticle()
     local obj = createclass( C_POLY )
     obj:born()
-    obj.form = loadobj( "cube.obj" )
+    obj.form = table.Copy( tCubeForm )
     obj.scl = vec3( .1 )
     obj.ang = vec3( 0, 0, 0 )
     vec3set( obj.pos, emiterpos )
@@ -42,14 +44,14 @@ end
 
 local floor = createclass( C_POLY )
 floor:born()
-floor.form = loadobj( "plane.obj" )
+floor.form = loadModel( "plane.mdl" )
 floor.scl = vec3( 2 )
 floor.ang = vec3( math.pi * .4, 0, 0 )
 floor.solid = true
 
 local floor = createclass( C_POLY )
 floor:born()
-floor.form = loadobj( "plane.obj" )
+floor.form = loadModel( "plane.mdl" )
 floor.scl = vec3( 3 )
 floor.ang = vec3( math.pi * .6, 0, .2 )
 floor.pos = vec3( 1, -1, -2 )
