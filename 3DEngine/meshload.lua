@@ -79,6 +79,97 @@ local keys = {
     ["f"] = constructFace,
 }
 
+function loadModel( name )
+    local cFile = File( "models/" .. name, FILE_READ )
+
+    if ( not cFile:Valid() ) then
+        cFile = File( "../3DEngine/models/" .. name, FILE_READ )
+    end
+
+    if ( not cFile:Valid() ) then
+        cFile = File( name, FILE_READ )
+    end
+
+    if ( not cFile:Valid() ) then
+        cFile = File( "../models/" .. name, FILE_READ )
+    end
+
+    form, vertexbuffer = {}, {}
+
+    local sHeader = cFile:Read( 3 )
+    local nVersion = cFile:ReadUShort()
+    --local nRadius = cFile:ReadFloat()
+
+    local tLump = {}
+
+    for i = 1, 3 do
+        tLump[i] = {
+            cFile:ReadUShort(), -- offset
+            cFile:ReadUShort(), -- size
+        }
+    end
+
+    --print( sHeader, nVersion )
+    --PrintTable( tLump )
+
+    -- Read Vertex Array
+    cFile:Seek( tLump[1][1] )
+    for _ = 1, tLump[1][2] / 12 do
+        local A, B, C = cFile:ReadFloat(), cFile:ReadFloat(), cFile:ReadFloat()
+        --print( A, B, C )
+        vertexbuffer[#vertexbuffer + 1] = vec3( A, B, C )
+    end
+
+    -- Construct face
+    cFile:Seek( tLump[2][1] )
+    for _ = 1, tLump[2][2] / 6 do
+        local A, B, C = cFile:ReadUShort(), cFile:ReadUShort(), cFile:ReadUShort()
+        --print( A, B, C, vertexbuffer[A], vertexbuffer[B], vertexbuffer[C] )
+        local tFace = face( vertexbuffer[A], vertexbuffer[B], vertexbuffer[C] )
+        insert( form, tFace )
+    end
+
+    -- Model Data
+    cFile:Seek( tLump[3][1] )
+
+    do
+        local minx, miny, minz = cFile:ReadFloat(), cFile:ReadFloat(), cFile:ReadFloat()
+        local maxx, maxy, maxz = cFile:ReadFloat(), cFile:ReadFloat(), cFile:ReadFloat()
+        local nRadius = cFile:ReadFloat()
+        -- 4 * 7 Bytes
+
+        form.radius = nRadius
+        form.rawoobb = { vec3( minx, miny, minz ), vec3( maxx, maxy, maxz ) }
+        form.oobb = { vec3( form.rawoobb[1] ), vec3( form.rawoobb[2] ) }
+        local min, max = vec3( form.oobb[1] ), vec3( form.oobb[2] )
+
+        form.rawpoints = {
+            vec3( min[1], max[2], min[3] ),
+            vec3( max[1], max[2], min[3] ),
+            vec3( max[1], min[2], min[3] ),
+            vec3( min[1], min[2], min[3] ),
+
+            vec3( min[1], max[2], max[3] ),
+            vec3( max[1], max[2], max[3] ),
+            vec3( max[1], min[2], max[3] ),
+            vec3( min[1], min[2], max[3] ),
+        }
+
+        form.oobbpoints = {
+            vec3( ),
+            vec3( ),
+            vec3( ),
+            vec3( ),
+            vec3( ),
+            vec3( ),
+            vec3( ),
+            vec3( )
+        }
+    end
+
+    return form
+end
+
 function loadobj( name )
     local f = io.open( "mesh/" .. name , "r" )
 
@@ -94,11 +185,12 @@ function loadobj( name )
         f = io.open( "../mesh/" .. name , "r" )
     end
 
+    local bIsObj = string.GetFileExtension( name ) == ".obj"
+
     form, vertexbuffer = {}, {}
     radius = 0
     maxx, maxy, maxz = math.mininteger, math.mininteger, math.mininteger
     minx, miny, minz = math.maxinteger, math.maxinteger, math.maxinteger
-
 
     local vertexbuffer = {}
 
