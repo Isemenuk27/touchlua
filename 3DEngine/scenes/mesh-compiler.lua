@@ -27,6 +27,7 @@ local tNames = {
     "osprey",
     "table",
     "plane",
+    "terrain"
 }
 local nVersion = 1
 
