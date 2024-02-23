@@ -1,5 +1,17 @@
-local CFile = {}
+CFile = {}
 CFile.__index = CFile
+
+-----------------[[
+-- (Write/Read)(U)Type(X/2)
+-- WriteUShort Writes unsigned 2 byte value in ANSI
+-- WriteLong2 Writes signed int value as UTF8?
+-- WriteUByteX Writes unsigned byte value as hex
+-- Write returns string writenData, file fileWriten
+--
+-- Read usually returns number or bool value
+--
+-- ANSI mode requires ANSI lib (libs/ansi.lua)
+-----------------]]
 
 local tHex = {
     [1] = "%01X",
@@ -18,30 +30,6 @@ local f, I = "f", "I"
 FILE_WRITE, FILE_READ = "wb", "rb"
 
 -- **********************************
-
---[[
-32bit number 11111111 11111111 11111111 11111111
-4 bytes
-
-loop though them starting at 0
-
-right shift number to ( byte * bits )
-AND ( & ) return if number is in value
-2 & 11 ( 8 + 2 + 1 ), returns 2
-3 & 11 ( 8 + 2 + 1 ), returns 0
-so if current number not in value ( 255 )
-then its 0, or it returns itself
-lastly convert it in char and save in file
-
-for i = 0, 3 do
-    local sRes = ( nNumber >> ( i * 8 ) ) & 0xFF
-    sOut = sOut .. string.char( sRes )
-end
-]]
-
--- ************* Float IEEE 754 *****************
--- Sign  Exponent  Mantissa  23-bits
--- 1     11111111  11111111 11111111 1111111
 
 local function floatDecompose( nVal )
     local nBytes = string.pack( f, nVal )
@@ -87,8 +75,9 @@ local function actualExponent( nVal )
     return nVal - 127
 end
 
+local invm = 1 / 0x800000
 local function actualMantissa( nVal )
-    return 1 + ( nVal / 0x800000 )
+    return 1 + ( nVal * invm )
 end
 
 local function codeNumber( nNumber, nBits )
@@ -118,8 +107,7 @@ local function codeLong( nNumber )
     return codeNumber( nNumber, 4 )
 end
 
--- ************************************
--- Short
+-- ************* Short *****************
 
 local function parseShort( sVal )
     local nOut, i = 0, 0
@@ -134,93 +122,15 @@ local function codeShort( nNumber )
     return codeNumber( nNumber, 2 )
 end
 
-function CFile:ReadFloat()
-    local nExponent = string.byte( self.IOFile:read( 1 ) )
-    local sMantissaSign = self.IOFile:read( 3 )
-    local nMantissa, bSign = parseMantissa( sMantissaSign )
-
-    local nM = bSign and -1 or 1
-    return nM * actualMantissa( nMantissa ) * ( 2 ^ actualExponent( nExponent ) )
-end
-
-function CFile:WriteFloat( nNumber )
-    local bSign, nExponent, nMantissa = floatDecompose( nNumber )
-    self.IOFile:write( string.char( nExponent ) )
-    return self.IOFile:write( codeMantissaAndSign( nMantissa, bSign ) )
-end
-
--- ************* Long *****************
-
-function CFile:WriteULongX( nNumber )
-    self.IOFile:write( toHex( nNumber, 32 ) )
-end
-
-function CFile:WriteLongX( nNumber )
-    self.IOFile:write( toHex( nNumber + ( 2^32 * .5 ), 32 ) )
-end
-
-function CFile:WriteULong( nNumber )
-    self.IOFile:write( codeLong( nNumber ) )
-end
-
-function CFile:WriteLong( nNumber )
-    self.IOFile:write( codeLong( nNumber + ( 2^32 * .5 ) ) )
-end
-
-function CFile:ReadULongX()
-    local sVal = self.IOFile:read( 8 )
-    return tonumber( sVal, 16 )
-end
-
-function CFile:ReadLongX()
-    local sVal = self.IOFile:read( 8 )
-    return tonumber( sVal, 16 ) - ( 2^32 * .5 )
-end
-
-function CFile:ReadULong()
-    local sVal = self.IOFile:read( 4 )
-    return parseLong( sVal )
-end
-
-function CFile:ReadLong()
-    local sVal = self.IOFile:read( 4 )
-    return parseLong( sVal ) - ( 2^32 * .5 )
-end
-
--- ************* Bit *****************
-
-function CFile:WriteBitX( bBool )
-    self.IOFile:write( toHex( nBool and 1 or 0, 1 ) )
-end
-
-function CFile:WriteBit( bBool )
-    self.IOFile:write( string.char( nBool and 1 or 0 ) )
-end
-
-function CFile:ReadBitX()
-    return tonumber( self.IOFile:read( 1 ), 16 ) == 1
-end
-
-function CFile:ReadBit()
-    return string.byte( self.IOFile:read( 1 ) ) == 1
-end
-
--- ************* Short *****************
-
+-- Hex
 function CFile:WriteUShortX( nNumber )
-    self.IOFile:write( toHex( nNumber, 16 ) )
+    local sData = toHex( nNumber, 16 )
+    return sData, self.IOFile:write( sData )
 end
 
 function CFile:WriteShortX( nNumber )
-    self.IOFile:write( toHex( nNumber + ( 2^16 * .5 ), 16 ) )
-end
-
-function CFile:WriteUShort( nNumber )
-    self.IOFile:write( codeShort( nNumber ) )
-end
-
-function CFile:WriteShort( nNumber )
-    self.IOFile:write( codeShort( nNumber + ( 2^16 * .5 ) ) )
+    local sData = toHex( nNumber + ( 2^16 * .5 ), 16 )
+    return sData, self.IOFile:write( sData )
 end
 
 function CFile:ReadUShortX()
@@ -233,32 +143,121 @@ function CFile:ReadShortX()
     return tonumber( sVal, 16 ) - ( 2^16 * .5 )
 end
 
-function CFile:ReadUShort()
+-- Normal
+function CFile:WriteUShort2( nNumber )
+    local sData = codeShort( nNumber )
+    return sData, self.IOFile:write( sData )
+end
+
+function CFile:WriteShort2( nNumber )
+    local sData = codeShort( nNumber + ( 2^16 * .5 ) )
+    return sData, self.IOFile:write( sData )
+end
+
+function CFile:ReadUShort2()
     local sVal = self.IOFile:read( 2 )
     return parseShort( sVal )
 end
 
-function CFile:ReadShort()
+function CFile:ReadShort2()
     local sVal = self.IOFile:read( 2 )
     return parseShort( sVal ) - ( 2^16 * .5 )
 end
 
+-- ************* Float *******************
+
+function CFile:ReadFloat2()
+    local nExponent = string.byte( self.IOFile:read( 1 ) )
+    local sMantissaSign = self.IOFile:read( 3 )
+    local nMantissa, bSign = parseMantissa( sMantissaSign )
+
+    local nM = bSign and -1 or 1
+    return nM * actualMantissa( nMantissa ) * ( 2 ^ actualExponent( nExponent ) )
+end
+
+function CFile:WriteFloat2( nNumber )
+    local bSign, nExponent, nMantissa = floatDecompose( nNumber )
+    local sData = string.char( nExponent ) .. codeMantissaAndSign( nMantissa, bSign )
+    return sData, self.IOFile:write( sData )
+end
+
+-- ************* Long *****************
+
+-- Hex
+function CFile:WriteULongX( nNumber )
+    local sData = toHex( nNumber, 32 )
+    return sData, self.IOFile:write( sData )
+end
+
+function CFile:WriteLongX( nNumber )
+    local sData = toHex( nNumber + ( 2^32 * .5 ), 32 )
+    return sData, self.IOFile:write( sData )
+end
+
+function CFile:ReadULongX()
+    local sVal = self.IOFile:read( 8 )
+    return tonumber( sVal, 16 )
+end
+
+function CFile:ReadLongX()
+    local sVal = self.IOFile:read( 8 )
+    return tonumber( sVal, 16 ) - ( 2^32 * .5 )
+end
+
+-- Normal
+function CFile:WriteULong2( nNumber )
+    local sData = codeLong( nNumber )
+    return sData, self.IOFile:write( sData )
+end
+
+function CFile:WriteLong2( nNumber )
+    local sData = codeLong( nNumber + ( 2^32 * .5 ) )
+    return sData, self.IOFile:write( sData )
+end
+
+function CFile:ReadULong2()
+    local sVal = self.IOFile:read( 4 )
+    return parseLong( sVal )
+end
+
+function CFile:ReadLong2()
+    local sVal = self.IOFile:read( 4 )
+    return parseLong( sVal ) - ( 2^32 * .5 )
+end
+
+-- ************* Bit *****************
+
+-- Hex
+function CFile:WriteBitX( bBool )
+    local sData = toHex( nBool and 1 or 0, 1 )
+    return sData, self.IOFile:write( sData )
+end
+
+function CFile:ReadBitX()
+    return tonumber( self.IOFile:read( 1 ), 16 ) == 1
+end
+
+-- Normal
+function CFile:WriteBit2( bBool )
+    local sData = string.char( nBool and 1 or 0 )
+    return sData, self.IOFile:write( sData )
+end
+
+function CFile:ReadBit2()
+    return string.byte( self.IOFile:read( 1 ) ) == 1
+end
+
 -- ************* Byte *****************
 
+-- Hex
 function CFile:WriteUByteX( nNumber )
-    self.IOFile:write( toHex( nNumber, 8 ) )
+    local sData = toHex( nNumber, 8 )
+    return sData, self.IOFile:write( sData )
 end
 
 function CFile:WriteByteX( nNumber )
-    self.IOFile:write( toHex( nNumber + ( 2^8 * .5 ), 8 ) )
-end
-
-function CFile:WriteUByte( nNumber )
-    self.IOFile:write( string.char( nNumber ) )
-end
-
-function CFile:WriteByte( nNumber )
-    self.IOFile:write( string.char( nNumber + ( 2^8 * .5 ) ) )
+    local sData = toHex( nNumber + ( 2^8 * .5 ), 8 )
+    return sData, self.IOFile:write( sData )
 end
 
 function CFile:ReadUByteX()
@@ -271,12 +270,203 @@ function CFile:ReadByteX()
     return tonumber( sVal, 16 ) - ( 2^8 * .5 )
 end
 
-function CFile:ReadUByte( nNumber )
+-- Normal
+function CFile:WriteUByte2( nNumber )
+    local sData = string.char( nNumber )
+    return sData, self.IOFile:write( sData )
+end
+
+function CFile:WriteByte2( nNumber )
+    local sData = string.char( nNumber + ( 2^8 * .5 ) )
+    return sData, self.IOFile:write( sData )
+end
+
+function CFile:ReadUByte2( nNumber )
     return string.byte( self.IOFile:read( 1 ) )
 end
 
-function CFile:ReadByte( nNumber )
+function CFile:ReadByte2( nNumber )
     return string.byte( self.IOFile:read( 1 ) ) - ( 2^8 * .5 )
+end
+
+-- **********************************
+--   Compatible with c++ file io
+
+local function codeNumber2( nNumber, nBits )
+    local sOut = ""
+
+    for i = 0, nBits - 1 do
+        local sRes = ( nNumber >> ( i * 8 ) ) & 0xFF
+        sOut = sOut .. string.ANSI( sRes )
+    end
+
+    return sOut
+end
+
+local function readNumber2( cFile, nBits )
+    local nOut = 0
+
+    for i = 0, nBits do
+        local nByte = cFile:ReadUByte2()
+        local n = nByte << ( i * 8 )
+        nOut = nOut + n
+    end
+
+    return nOut
+end
+
+--***********************************
+--              Byte
+
+function CFile:ReadUByte()
+    local sData = self.IOFile:read( 1 )
+
+    local nByte = string.byte( sData )
+
+    if ( nByte < 0x80 ) then
+        return nByte
+    end
+
+    local sData2 = self.IOFile:read( 1 )
+    local nByte2 = string.byte( sData2 )
+
+    if ( nByte == 226 ) then
+        local sData3 = self.IOFile:read( 1 )
+        local nByte3 = string.byte( sData3 )
+
+        return string.bytesToANSI( nByte, nByte2, nByte3 )
+    end
+
+    return string.bytesToANSI( nByte, nByte2 )
+end
+
+function CFile:ReadByte()
+    local n = self:ReadUShort()
+    local nOut = n & 0xFF
+
+    if ( n & 0x80 == 0x80 ) then
+        nOut = nOut - 0xFF - 1
+    end
+
+    return nOut
+end
+
+function CFile:WriteUByte( nNumber )
+    local sData = codeNumber2( nNumber, 1 )
+    return sData, self.IOFile:write( sData )
+end
+
+function CFile:WriteByte( nNumber )
+    local sData = codeNumber2( nNumber, 1 )
+    return sData, self.IOFile:write( sData )
+end
+
+--***********************************
+--              Short
+
+function CFile:ReadUShort()
+    return readNumber2( self, 1 )
+end
+
+function CFile:ReadShort()
+    local n = self:ReadUShort()
+    local nOut = n & 0xFFFF
+
+    if ( n & 0x8000 == 0x8000 ) then
+        nOut = nOut - 0xFFFF - 1
+    end
+
+    return nOut
+end
+
+function CFile:WriteShort( nNumber )
+    local sData = codeNumber2( nNumber, 2 )
+    return sData, self.IOFile:write( sData )
+end
+
+function CFile:WriteUShort( nNumber )
+    local sData = codeNumber2( nNumber, 2 )
+    return sData, self.IOFile:write( sData )
+end
+
+--***********************************
+--              Long
+
+function CFile:ReadULong()
+    return readNumber2( self, 3 )
+end
+
+function CFile:ReadLong()
+    local n = self:ReadULong()
+    local nOut = n & 0xFFFFFFFF
+
+    if ( n & 0x80000000 == 0x80000000 ) then
+        nOut = nOut - 0xFFFFFFFF - 1
+    end
+
+    return nOut
+end
+
+function CFile:WriteLong( nNumber )
+    return self:WriteULong( nNumber )
+end
+
+function CFile:WriteULong( nNumber )
+    local sData = codeNumber2( nNumber, 4 )
+    return sData, self.IOFile:write( sData )
+end
+
+--***********************************
+--              Bool
+
+function CFile:ReadBool()
+    return self:ReadUByte() == 1
+end
+
+function CFile:ReadBit()
+    return self:ReadUByte()
+end
+
+function CFile:WriteBit( nBit )
+    local nData = ( nBit > 0 ) and 1 or 0
+    return self:WriteUByte( nData )
+end
+
+function CFile:WriteBool( bBool )
+    local nData = codeNumber2( bBool and 1 or 0, 0 )
+    return self:WriteUByte( nData )
+end
+
+--***********************************
+--              Float
+
+local function actualExponent( nVal )
+    return nVal - 127
+end
+
+local invm = 1 / 0x800000
+local function actualMantissa( nVal )
+    return 1 + ( nVal * invm )
+end
+
+function CFile:ReadFloat()
+    local nNum = self:ReadULong()
+    local nSign = ( nNum & 0x80000000 == 0x80000000 ) and -1 or 1
+    local nExpo = ( nNum & 0x7F800000 ) >> 23
+    local nMant = nNum & 0x7FFFFF
+
+    --[[ print( "nSign", nSign )
+    print( "nExpo", nExpo, "\n", bin( nExpo ) )
+    print( "nMant", nMant, "\n", bin( nMant ) ) ]]--
+
+    local nRes =  actualMantissa( nMant ) * ( 2 ^ actualExponent( nExpo ) )
+    return nSign * nRes
+end
+
+function CFile:WriteFloat( nNumber )
+    local nBytes = string.pack( "<f", nNumber )
+    local nBits = string.unpack( "I", nBytes )
+    return self:WriteULong( nBits )
 end
 
 -- **********************************
@@ -293,8 +483,13 @@ function CFile:Read( ... )
     return self.IOFile:read( ... )
 end
 
-function CFile:Seek( ... )
-    return self.IOFile:seek( ... )
+
+function CFile:Seek( nOffset, sBasePos )
+    return self.IOFile:seek( sBasePos or "set", nOffset )
+end
+
+function CFile:Valid()
+    return self.IOFile ~= nil
 end
 
 -- **********************************
