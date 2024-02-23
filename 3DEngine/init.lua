@@ -13,6 +13,8 @@ require( "libs/callback" )
 require( "libs/cursor" )
 require( "libs/2dgui" )
 require( "libs/string" )
+require( "libs/ansi" )
+require( "libs/file" )
 
 --**********************
 
