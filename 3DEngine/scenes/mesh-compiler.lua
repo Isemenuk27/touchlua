@@ -7,6 +7,17 @@ if ( not Inited ) then
     return require("3DEngine/init")
 end
 
+local writeFloat  = CFile.WriteFloat2
+local writeUShort = CFile.WriteUShort2
+local writeShort  = CFile.WriteShort2
+local writeULong  = CFile.WriteULong2
+local writeLong   = CFile.WriteLong2
+local writeUByte  = CFile.WriteUByte2
+local writeByte   = CFile.WriteByte2
+local writeBool   = CFile.WriteBool2
+local writeBit    = CFile.WriteBit2
+--***********************************
+
 --[[
 -- Model data stored in 3 lumps
 1 - vertex points array
@@ -163,47 +174,47 @@ local function compileModel( name )
     local tFace, tVertex = loadMesh( cObj )
 
     cMesh:Write( "MDL" ) -- Header
-    cMesh:WriteUShort( nVersion ) -- Version
+    writeUShort( cMesh, nVersion ) -- Version
 
     local nOffsetBytes, nBytes = 5, 0
     local nLumpOffset = 3 * 4
 
     for _, vVtex in ipairs( tVertex ) do
-        cTemp:WriteFloat( vVtex[1] )
-        cTemp:WriteFloat( vVtex[2] )
-        cTemp:WriteFloat( vVtex[3] )
+        writeFloat( cTemp, vVtex[1] )
+        writeFloat( cTemp, vVtex[2] )
+        writeFloat( cTemp, vVtex[3] )
         nBytes = nBytes + 4 * 3
     end
 
-    cMesh:WriteUShort( nLumpOffset + nOffsetBytes ) -- offset
-    cMesh:WriteUShort( nBytes ) -- size
+    writeUShort( cMesh, nLumpOffset + nOffsetBytes ) -- offset
+    writeUShort( cMesh, nBytes ) -- size
     nOffsetBytes, nBytes = nOffsetBytes + nBytes, 0
 
     for _, t in ipairs( tFace ) do
-        cTemp:WriteUShort( t[1] )
-        cTemp:WriteUShort( t[2] )
-        cTemp:WriteUShort( t[3] )
+        writeUShort( cTemp, t[1] )
+        writeUShort( cTemp, t[2] )
+        writeUShort( cTemp, t[3] )
         nBytes = nBytes + 2 * 3
     end
 
-    cMesh:WriteUShort( nLumpOffset + nOffsetBytes ) -- offset
-    cMesh:WriteUShort( nBytes ) -- size
+    writeUShort( cMesh, nLumpOffset + nOffsetBytes ) -- offset
+    writeUShort( cMesh, nBytes ) -- size
     nOffsetBytes, nBytes = nOffsetBytes + nBytes, 0
 
     -- Model data
-    cTemp:WriteFloat( nMinX )
-    cTemp:WriteFloat( nMinY )
-    cTemp:WriteFloat( nMinZ )
+    writeFloat( cTemp, nMinX )
+    writeFloat( cTemp, nMinY )
+    writeFloat( cTemp, nMinZ )
 
-    cTemp:WriteFloat( nMaxX )
-    cTemp:WriteFloat( nMaxY )
-    cTemp:WriteFloat( nMaxZ )
+    writeFloat( cTemp, nMaxX )
+    writeFloat( cTemp, nMaxY )
+    writeFloat( cTemp, nMaxZ )
 
-    cTemp:WriteFloat( nRadius )
+    writeFloat( cTemp, nRadius )
     nBytes = 7 * 4
 
-    cMesh:WriteUShort( nLumpOffset + nOffsetBytes ) -- offset
-    cMesh:WriteUShort( nBytes ) -- size
+    writeUShort( cMesh, nLumpOffset + nOffsetBytes ) -- offset
+    writeUShort( cMesh, nBytes ) -- size
     nOffsetBytes, nBytes = nOffsetBytes + nBytes, 0
 
     cTemp:Close()
