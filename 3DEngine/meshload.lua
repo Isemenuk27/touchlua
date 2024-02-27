@@ -8,6 +8,18 @@ local radius = 0
 local maxx, maxy, maxz = math.mininteger, math.mininteger, math.mininteger
 local minx, miny, minz = math.maxinteger, math.maxinteger, math.maxinteger
 
+--***********************************
+local readFloat  = CFile.ReadFloat2
+local readUShort = CFile.ReadUShort2
+local readShort  = CFile.ReadShort2
+local readULong  = CFile.ReadULong2
+local readLong   = CFile.ReadLong2
+local readUByte  = CFile.ReadUByte2
+local readByte   = CFile.ReadByte2
+local readBool   = CFile.ReadBool2
+local readBit    = CFile.ReadBit2
+--***********************************
+
 local function numChars(str, char)
     local count = 0
 
@@ -97,15 +109,15 @@ function loadModel( name )
     form, vertexbuffer = {}, {}
 
     local sHeader = cFile:Read( 3 )
-    local nVersion = cFile:ReadUShort()
+    local nVersion = readUShort( cFile )
     --local nRadius = cFile:ReadFloat()
 
     local tLump = {}
 
     for i = 1, 3 do
         tLump[i] = {
-            cFile:ReadUShort(), -- offset
-            cFile:ReadUShort(), -- size
+            readUShort( cFile ), -- offset
+            readUShort( cFile ), -- size
         }
     end
 
@@ -115,7 +127,7 @@ function loadModel( name )
     -- Read Vertex Array
     cFile:Seek( tLump[1][1] )
     for _ = 1, tLump[1][2] / 12 do
-        local A, B, C = cFile:ReadFloat(), cFile:ReadFloat(), cFile:ReadFloat()
+        local A, B, C = readFloat( cFile ), readFloat( cFile ), readFloat( cFile )
         --print( A, B, C )
         vertexbuffer[#vertexbuffer + 1] = vec3( A, B, C )
     end
@@ -123,7 +135,7 @@ function loadModel( name )
     -- Construct face
     cFile:Seek( tLump[2][1] )
     for _ = 1, tLump[2][2] / 6 do
-        local A, B, C = cFile:ReadUShort(), cFile:ReadUShort(), cFile:ReadUShort()
+        local A, B, C = readUShort( cFile ), readUShort( cFile ), readUShort( cFile )
         --print( A, B, C, vertexbuffer[A], vertexbuffer[B], vertexbuffer[C] )
         local tFace = face( vertexbuffer[A], vertexbuffer[B], vertexbuffer[C] )
         insert( form, tFace )
@@ -133,9 +145,9 @@ function loadModel( name )
     cFile:Seek( tLump[3][1] )
 
     do
-        local minx, miny, minz = cFile:ReadFloat(), cFile:ReadFloat(), cFile:ReadFloat()
-        local maxx, maxy, maxz = cFile:ReadFloat(), cFile:ReadFloat(), cFile:ReadFloat()
-        local nRadius = cFile:ReadFloat()
+        local minx, miny, minz = readFloat( cFile ), readFloat( cFile ), readFloat( cFile )
+        local maxx, maxy, maxz = readFloat( cFile ), readFloat( cFile ), readFloat( cFile )
+        local nRadius = readFloat( cFile )
         -- 4 * 7 Bytes
 
         form.radius = nRadius
@@ -166,6 +178,8 @@ function loadModel( name )
             vec3( )
         }
     end
+
+    -- cFile:Close()
 
     return form
 end
