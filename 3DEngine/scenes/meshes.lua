@@ -8,17 +8,17 @@ if ( not Inited ) then
 end
 
 local meshes = {
-    loadobj( "osprey.obj" ),
-    loadobj( "f16.obj" ),
-    loadobj( "apache.obj" ),
-    loadobj( "skeleton.obj" ),
+    loadModel( "osprey.mdl" ),
+    loadModel( "f16.mdl" ),
+    loadModel( "apache.mdl" ),
+    loadModel( "skeleton.mdl" ),
 }
 
 local meshid = 1
 
 local obj = createclass( C_POLY )
 obj:born()
-obj.form = loadobj( "osprey.obj" )
+obj.form = loadModel( "osprey.mdl" )
 obj.scl = vec3( 1 )
 obj.ang = vec3( 0, 0, 0 )
 obj.solid = true
