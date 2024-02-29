@@ -6,14 +6,26 @@ local string_sub = string.sub
 local string_find = string.find
 local string_len = string.len
 
-function string.Explode( separator, str, withpattern )
-    if ( separator == "" ) then return totable( str ) end
+local sExplodeFormat = "[^%s]+"
+
+function string.Explode( sSeparator, sInput )
+    local sPattern = string.format( sExplodeFormat, sSeparator )
+    local tRes, nLen = {}, 0
+
+    for sPart in string.gmatch( sInput, sPattern) do
+        nLen = nLen + 1
+        tRes[nLen] = sPart
+    end
+
+    return tRes
+
+    --[[    if ( separator == "" ) then return totable( str ) end
     if ( withpattern == nil ) then withpattern = false end
 
     local ret = {}
     local current_pos = 1
 
-    for i = 1, string_len( str ) do
+    for i = 1, #str do
         local start_pos, end_pos = string_find( str, separator, current_pos, not withpattern )
         if ( not start_pos ) then break end
         ret[ i ] = string_sub( str, current_pos, start_pos - 1 )
@@ -22,11 +34,17 @@ function string.Explode( separator, str, withpattern )
 
     ret[ #ret + 1 ] = string_sub( str, current_pos )
 
-    return ret
+    return ret]]--
 end
 
 function string.Split( str, delimiter )
     return string.Explode( delimiter, str )
+end
+
+local sFilePathExtension = "^.+(%..+)$"
+
+function string.GetFileExtension( sFilePath )
+    return string.match( sFilePath, sFilePathExtension )
 end
 
 function string.StripExtension( path )
