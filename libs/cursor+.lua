@@ -33,7 +33,9 @@ local function getCursorList()
 end
 
 local function pushCursor( cCursor )
-    return table.insert( getCursorList(), cCursor )
+    local nL = #getCursorList() + 1
+    getCursorList()[nL] = cCursor
+    return nL
 end
 
 local function getCursorIndex( cCursor )
@@ -143,6 +145,8 @@ local function cursorBegan( t )
         cCursor = createCursor( nTId )
         nId = pushCursor( cCursor )
     end
+
+    print( cCursor, nId, nTId, nX, nY )
 
     exec( cursor.tCallbacks.began, nId )
 
