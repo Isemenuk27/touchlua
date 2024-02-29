@@ -9,14 +9,14 @@ end
 
 local obj = createclass( C_POLY )
 obj:born()
-obj.form = loadobj( "f16.obj" )
+obj.form = loadModel( "f16.mdl" )
 obj.scl = vec3( 1 )
 obj.ang = vec3( 0, 0, 0 )
 obj.solid = true
 
 local obj2 = createclass( C_POLY )
 obj2:born()
-obj2.form = loadobj( "cube.obj" )
+obj2.form = loadModel( "cube.mdl" )
 obj2.scl = vec3( 1 )
 
 vec3set( GetCamPos(), 1.4629, 3.8762 - 1.4, 9.1 )
