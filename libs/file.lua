@@ -244,7 +244,18 @@ function CFile:WriteBit2( bBool )
 end
 
 function CFile:ReadBit2()
-    return string.byte( self.IOFile:read( 1 ) ) == 1
+    return string.byte( self.IOFile:read( 1 ) )
+end
+
+-- Bool
+
+function CFile:WriteBool2( bBool )
+    local sData = string.char( bBool and 1 or 0 )
+    return sData, self.IOFile:write( sData )
+end
+
+function CFile:ReadBool2()
+    return string.byte( self.IOFile:read( 1 ) ) > 0
 end
 
 -- ************* Byte *****************
@@ -307,7 +318,7 @@ local function readNumber2( cFile, nBits )
     local nOut = 0
 
     for i = 0, nBits do
-        local nByte = cFile:ReadUByte2()
+        local nByte = cFile:ReadUByte()
         local n = nByte << ( i * 8 )
         nOut = nOut + n
     end
@@ -341,7 +352,7 @@ function CFile:ReadUByte()
 end
 
 function CFile:ReadByte()
-    local n = self:ReadUShort()
+    local n = self:ReadUByte()
     local nOut = n & 0xFF
 
     if ( n & 0x80 == 0x80 ) then
@@ -407,13 +418,13 @@ function CFile:ReadLong()
     return nOut
 end
 
-function CFile:WriteLong( nNumber )
-    return self:WriteULong( nNumber )
-end
-
 function CFile:WriteULong( nNumber )
     local sData = codeNumber2( nNumber, 4 )
     return sData, self.IOFile:write( sData )
+end
+
+function CFile:WriteLong( nNumber )
+    return self:WriteULong( nNumber )
 end
 
 --***********************************
