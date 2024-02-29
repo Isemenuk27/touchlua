@@ -415,6 +415,8 @@ local function renderFaces()
 
         filltriangle( x1, y1, x2, y2, x3, y3, t_Drawcol )
 
+        --local ox, oy = toscreen( face.og )
+        --text( z1, ox, oy, white )
         --triBarycentric( x1, y1, x2, y2, x3, y3, t_Drawcol )
 
         --if ( _DRAWOVERLAY ) then
