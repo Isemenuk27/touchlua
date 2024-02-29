@@ -120,3 +120,95 @@ function table.RemoveByValue( tbl, val )
     return key
 
 end
+
+
+function table.Copy( t, lookup_table )
+    if ( t == nil ) then return nil end
+
+    local copy = {}
+    setmetatable( copy, debug.getmetatable( t ) )
+    for i, v in pairs( t ) do
+        if ( not istable( v ) ) then
+            copy[ i ] = v
+        else
+            lookup_table = lookup_table or {}
+            lookup_table[ t ] = copy
+            if ( lookup_table[ v ] ) then
+                copy[ i ] = lookup_table[ v ] -- we already copied this table. reuse the copy.
+            else
+                copy[ i ] = table.Copy( v, lookup_table ) -- not yet copied. copy it.
+            end
+        end
+    end
+    return copy
+end
+
+function table.Merge( dest, source, forceOverride )
+    for k, v in pairs( source ) do
+        if ( not forceOverride and istable( v ) and istable( dest[ k ] ) ) then
+            table.Merge( dest[ k ], v )
+        else
+            dest[ k ] = v
+        end
+    end
+
+    return dest
+end
+
+local function toKeyValues( tbl )
+
+    local result = {}
+
+    for k, v in pairs( tbl ) do
+        table.insert( result, { key = k, val = v } )
+    end
+
+    return result
+
+end
+
+local function getKeys( tbl )
+
+    local keys = {}
+
+    for k in pairs( tbl ) do
+        table.insert( keys, k )
+    end
+
+    return keys
+
+end
+
+function SortedPairs( pTable, Desc )
+    local keys = getKeys( pTable )
+
+    if ( Desc ) then
+        table.sort( keys, function( a, b )
+            return a > b
+        end )
+    else
+        table.sort( keys, function( a, b )
+            return a < b
+        end )
+    end
+
+    local i, key
+    return function()
+        i, key = next( keys, i )
+        return key, pTable[key], 0
+    end
+end
+
+function SortedPairsByValue( pTable, Desc )
+
+    local sortedTbl = toKeyValues( pTable )
+
+    if ( Desc ) then
+        table.sort( sortedTbl, function( a, b ) return a.val > b.val end )
+    else
+        table.sort( sortedTbl, function( a, b ) return a.val < b.val end )
+    end
+
+    return keyValuePairs, { Index = 0, KeyValues = sortedTbl }, 0
+
+end
