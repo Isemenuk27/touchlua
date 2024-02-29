@@ -30,5 +30,4 @@ local function Loop( CT, DT )
     end
 end
 
-callback( _LOOPCALLBACK
-  , Loop )
+callback( _LOOPCALLBACK, Loop )
