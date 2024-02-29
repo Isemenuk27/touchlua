@@ -7,16 +7,18 @@ if ( not Inited ) then
     return require("3DEngine/init")
 end
 
+local nDesity = 1.225
+
 local emiterpos = vec3( 0, 5, 0 )
 local _PARTICLES = {}
 
-local tCubeForm = loadModel( "cube.mdl" )
+local tCubeForm = loadModel( "plane.mdl" )
 
 local function newParticle()
     local obj = createclass( C_POLY )
     obj:born()
     obj.form = table.Copy( tCubeForm )
-    obj.scl = vec3( .1 )
+    obj.scl = vec3( rand( .1, .3 ) )
     obj.ang = vec3( 0, 0, 0 )
     vec3set( obj.pos, emiterpos )
     vec3add( obj.pos, math.random( -1, 1 ), rand( -2, 2 ), math.random( -1, 1 ) )
@@ -31,7 +33,7 @@ local function newParticle()
     table.insert( _PARTICLES, obj )
 end
 
-for i = 1, 20 do
+for i = 1, 30 do
     newParticle()
 end
 
@@ -99,7 +101,7 @@ local function Loop( CT, DT )
         vec3set( _DRAG, _DIR )
 
         local A = math.pi * ( obj.radius * obj.radius )
-        local DragF = 1.225 * obj.coef * v * A * 0.5
+        local DragF = nDesity * obj.coef * v * A * 0.5
 
         vec3mul( _DRAG, DragF )
         vec3sub( _ADDACC, _DRAG )
