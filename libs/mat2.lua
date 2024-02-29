@@ -7,6 +7,12 @@ local TABLE, type = "table", type
 local function istable( t )
     return type( t ) == TABLE
 end
+--[[
+#| 0    1  |
+0| Rx | Sx |
+1| Ry | Sy |
+2| Tx | Ty |
+]]--
 
 function mat2born( a, b, c, d )
     local m = {
@@ -67,7 +73,7 @@ function mat2scl( m, sx, sy )
 end
 
 function mat2tr( m, x, y )
-    --assert( m[2][1], "Using wrong matrix type" )
+    assert( m[2][1], "Using wrong matrix type" )
     m[2][0] = x
     m[2][1] = y or x
 end
