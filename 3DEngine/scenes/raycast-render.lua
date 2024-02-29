@@ -11,9 +11,11 @@ local vec3add, vec3sub, vec3set, vec3mul, vec3dot = vec3add, vec3sub, vec3set, v
 
 local maxrecurtion = 2
 
+local tCubeForm = loadModel( "cube.mdl" )
+
 local obj = createclass( C_POLY )
 obj:born()
-obj.form = loadobj( "cube.obj" )
+obj.form = table.Copy( tCubeForm ) --loadobj( "cube.obj" )
 obj.scl = vec3( 6, 1, 6 )
 obj.ang = vec3( 0, 0, 0 )
 obj.pos = vec3( 0, -.5, 0 )
@@ -22,7 +24,7 @@ obj.solid = true
 for i = 0, 7 do
     local obj = createclass( C_POLY )
     obj:born()
-    obj.form = loadobj( "cube.obj" )
+    obj.form = table.Copy( tCubeForm )--loadobj( "cube.obj" )
     obj.scl = vec3( rand( .1, .4 ) ) -- .3 )
     obj.ang = vec3( rand( -math.pi, math.pi ) )
     obj.pos = vec3( rand( -3, 3 ), rand( .2, 2 ), rand( -3, 3 ) ) -- -.3, 1.4, -.4 )
@@ -40,12 +42,12 @@ lamp:enable()
 
 local lamp2 = createclass( C_LIGHT )
 lamp2:born()
-lamp2.power = 1.3
-lamp2:setPos( vec3( 3, 2, 2 ) )
+lamp2.power = 2
+lamp2:setPos( vec3( 3, -5, -2 ) )
 lamp2.diffuse = vec3mul(
 vec3( 140, 227, 244 ),
 1 / 255 )
-lamp2:enable()
+--lamp2:enable()
 
 _SUPRESSRENDER = true
 local NextSupRender = 0
