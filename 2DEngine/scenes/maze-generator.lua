@@ -22,8 +22,8 @@ local TILE = {
     [TILE_GRAY] = draw.gray,
 }
 
-local nTilemapWidth = 20
-local nTilemapHeight = 20
+local nTilemapWidth = 40
+local nTilemapHeight = 40
 local nTileSize = 1 / nTilemapWidth
 local tTilemap = {}
 local sTravelStack = stack()
