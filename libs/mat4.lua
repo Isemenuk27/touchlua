@@ -118,22 +118,21 @@ end
 do
     local forward, left, up = vec3(), vec3(), vec3()
 
-    function mat4toAng( src, vAngles )
-        vec3set( forward, src[0][0], src[1][0], src[2][0] )
-        vec3set( left, src[0][1], src[1][1], src[2][1] )
-        up[3] = src[2][2]
+    function mat4toAng( m, vAngles )
+        local x, y, z
+        local cy = sqrt(m[1][1] * m[1][1] + m[0][1] * m[0][1])
 
-        local xyDist = sqrt( forward[1] * forward[1] + forward[3] * forward[3] )
-
-        if ( xyDist > 0.001 ) then
-            vAngles[1] = atan( forward[3], forward[1] )
-            vAngles[2] = atan( -forward[2], xyDist )
-            vAngles[3] = atan( left[2], up[2] )
+        if ( cy > .001 ) then
+            x = atan( m[2][0], m[2][2] )
+            y = atan( -m[2][1], cy )
+            z = atan( m[0][1], m[1][1] )
         else
-            vAngles[1] = atan( -left[1], left[3] )
-            vAngles[2] = atan( -forward[2], xyDist )
-            vAngles[3] = 0
+            x = atan( m[0][2], m[0][0] )
+            y = atan( -m[2][1], cy )
+            z = 0
         end
+
+        vec3set( vAngles, x, y, z )
 
         return vAngles
     end
@@ -303,6 +302,51 @@ function mat4qinv( m, o )
     return o
 end
 
+function mat4det( m )
+    local det = m[0][0] * (m[1][1] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
+    m[1][2] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) +
+    m[1][3] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]))
+    - m[0][1] * (m[1][0] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
+    m[1][2] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
+    m[1][3] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]))
+    + m[0][2] * (m[1][0] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) -
+    m[1][1] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
+    m[1][3] * (m[2][0] * m[3][1] - m[2][1] * m[3][0]))
+    - m[0][3] * (m[1][0] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]) -
+    m[1][1] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]) +
+    m[1][2] * (m[2][0] * m[3][1] - m[2][1] * m[3][0]))
+
+    return det
+end
+
+function mat4invtr( tM, tO )
+    local a = tM[0][0]
+    local b = tM[1][0]
+    local c = tM[2][0]
+
+    local e = tM[0][1]
+    local f = tM[1][1]
+    local g = tM[2][1]
+
+    local i = tM[0][2]
+    local j = tM[1][2]
+    local k = tM[2][2]
+
+    -- Transform the translation.
+    local n1, n2, n3 = -tM[0][3], -tM[1][3], -tM[2][3]
+
+    local d = a * n1 + b * n2 + c * n3
+    local h = e * n1 + f * n2 + g * n3
+    local l = i * n1 + j * n2 + k * n3
+
+    --[[ local m = 0
+    local n = 0
+    local o = 0
+    local p = 1 ]]
+
+    return mat3set( tO or mat4(), a, b, c, d, e, f, g, h, i, j, k, l, 0, 0, 0, 1 )
+end
+
 do
     local _X, _Y, _Z, _MAT, _R = mat4(), mat4(), mat4(), mat4(), mat4()
     local vec3origin = vec3( 1 )
@@ -333,8 +377,8 @@ do
         mat4zrot( _Z, ang[3] )
 
         mat4mul( mat, _Y, _M )
-        mat4mul( _M, _Z, mat )
-        mat4mul( mat, _X, _M )
+        mat4mul( _M, _X, mat )
+        mat4mul( mat, _Z, _M )
 
         mat4set( mat, _M )
 
@@ -368,7 +412,7 @@ do
 
         mat4setTr( _MAT2, wpos )
         mat4setAng( _MAT2, wang )
-        mat4qinv( _MAT2 )
+        mat4invtr( _MAT2, _MAT2 )
 
         mat4mul( _MAT2, _MAT, _RES )
 
