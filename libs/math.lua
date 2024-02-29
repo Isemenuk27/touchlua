@@ -1,6 +1,7 @@
 local max, min, floor, ceil, abs, sqrt = math.max, math.min, math.floor, math.ceil, math.abs, math.sqrt
 local pi, pi2 = math.pi, math.pi * 2
 local random = math.random
+math.tau = math.pi * 2
 
 function distd( dx, dy )
     return sqrt( dx * dx + dy * dy )
@@ -110,4 +111,3 @@ function lerp( delta, from, to )
     end
     return from + ( to - from ) * delta
 end
-
