@@ -60,7 +60,6 @@ function updateFrustum( CT, DT )
 
     vec3set( _FRUSTUM.right[1], GetCamPos() )
     vec3normal( _FRUSTUM.farBottomRight, _FRUSTUM.farTopRight, GetCamPos(), _FRUSTUM.right[2] )
-
 end
 
 function buildFrustum( fov, aspect, zn, zf )
