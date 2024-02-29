@@ -276,3 +276,4 @@ local format, formatvector = string.format, "vec3( %f, %f, %f )"
 function vec3tostring( v )
     return format( formatvector, v[1], v[2], v[3] )
 end
+
