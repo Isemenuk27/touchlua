@@ -1,7 +1,14 @@
 gui = {
     tCache = {},
     sRegistered = {},
+    tHeld = {},
 }
+
+local function validCall( vFunc, ... )
+    if ( vFunc ) then
+        return vFunc( ... )
+    end
+end
 
 local function removeByValue( t, v )
     for i, val in ipairs( t ) do
@@ -37,11 +44,57 @@ local function handleControls()
 
 end
 
-local function validCall( vFunc, ... )
-    if ( vFunc ) then
-        return vFunc( ... )
+local function touchBegan( nId )
+    print( nId )
+    if ( gui.tHeld[nId] ) then
+        return
     end
+
+    local gMaxZWindow = nil
+    local nCx, nCy = cursor.pos2( nId )
+
+    for i, gWindow in ipairs( gui.tCache ) do
+        local bInCursor = gWindow.testCursor and gWindow:testCursor( nId ) or nil
+        if ( bInCursor == nil ) then
+            local nX, nY = gWindow.vPos[1] - gWindow.vCenter[1], gWindow.vPos[2] - gWindow.vCenter[2]
+            local nX2, nY2 = nX + gWindow.vSize[1], nY + gWindow.vSize[2]
+            bInCursor = pointaabb( nCx, nCy, nX, nY, nX2, nY2 )
+        end
+
+        if ( bInCursor ) then
+            if ( not gMaxZWindow ) then
+                gMaxZWindow = gWindow
+            elseif ( gui.getZ( gWindow ) > gui.getZ( gMaxZWindow ) ) then
+                gMaxZWindow = gWindow
+            end
+        end
+    end
+
+    if ( not gMaxZWindow ) then
+        return
+    end
+
+    gui.tHeld[nId] = gMaxZWindow
+    validCall( gMaxZWindow.press, gMaxZWindow, cursor.pos( nId ) )
 end
+
+local function touchMoved( nId )
+
+end
+
+local function touchEnded( nId )
+    local gWindow = gui.tHeld[nId]
+
+    if ( gWindow ) then
+        validCall( gWindow.press, gWindow, cursor.pos( nId ) )
+    end
+
+    gui.tHeld[nId] = false
+end
+
+callback( cursor.tCallbacks.began, touchBegan )
+callback( cursor.tCallbacks.moved, touchMoved )
+callback( cursor.tCallbacks.ended, touchEnded )
 
 local mTrMat = mat3()
 
@@ -68,7 +121,9 @@ function gui.new( sClass, gParent )
     local gWindow = setmetatable( {
         vPos = vec2( 600, 700 ),
         vSize = vec2( 400, 130 ),
+        vCenter = vec2(),
         gParent = false,
+        nZPos = 0,
     }, gui.sRegistered[sClass] )
     validCall( gWindow.init, gWindow )
     validCall( gWindow.postinit, gWindow )
@@ -78,6 +133,10 @@ end
 
 function gui.get( sClass )
     return gui.sRegistered[sClass]
+end
+
+function gui.getZ( gWindow )
+    return gWindow.nZPos
 end
 
 function gui.register( tWindow )
