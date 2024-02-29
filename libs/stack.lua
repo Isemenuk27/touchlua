@@ -9,6 +9,10 @@ function stackclear( stack )
     collectgarbage()
 end
 
+function stacklast( stack, item )
+    return stack[#stack]
+end
+
 function push( stack, item )
     insert(stack, item)
 end
