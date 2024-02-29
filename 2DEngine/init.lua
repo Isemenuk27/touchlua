@@ -1,4 +1,21 @@
+if ( package.pathinit ) then
+    package.path = package.pathinit
+end
 package.path = package.path .. ";../?.lua"
+
+local function requireCondition( bBool, sPath )
+    if ( bBool ) then
+        return require( sPath )
+    end
+    return false
+end
+
+if ( PARAMS ) then
+    NO2DGUI = PARAMS.No2DGui or false
+    GUIPLUS = PARAMS.GuiPlus or false
+    _SCENETOLOAD = PARAMS.LoadScene or false
+    NoDrawPlus = PARAMS.NoDrawPlus or false
+end
 
 require( "libs/globals" )
 require( "libs/table" )
@@ -11,12 +28,8 @@ require( "libs/callback" )
 require( "libs/baseclass" )
 --require( "libs/cursor" )
 require( "libs/cursor+" )
-if ( not NO2DGUI ) then
-    require( "libs/2dgui" )
-end
-if ( GUIPLUS ) then --WIP
-    require( "libs/2DGUI+" )
-end
+requireCondition( not NO2DGUI, "libs/2dgui" )
+requireCondition( GUIPLUS, "libs/2DGUI+" )
 require( "libs/string" )
 
 --**********************
@@ -50,7 +63,8 @@ _LOOPCALLBACK = "Scene.Loop"
 require( "screen" )
 showscreen()
 require( "render" )
-require( "libs/draw+" )
+
+requireCondition( not NoDrawPlus, "libs/draw+" )
 require( "menu" )
 require( "phys" )
 
@@ -102,7 +116,7 @@ end
 
 local function Loop( CT, DT )
     exec( _LOOPCALLBACK, CT, DT )
-    draw.ftext( round( 1 / DT, 2 ), w * .02, h * .01, TEXT_RIGHT, TEXT_MIDDLE, red, ScrH() * .01 )
+    --draw.ftext( round( 1 / DT, 2 ), w * .02, h * .01, TEXT_RIGHT, TEXT_MIDDLE, red, ScrH() * .01 )
 end
 
 exec( "Init" )
