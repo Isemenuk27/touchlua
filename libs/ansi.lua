@@ -9,6 +9,10 @@ function string.ANSI( n )
 end
 
 function string.bytesToANSI( b1, b2, b3 )
+    if ( not tBytetoANSI[b1] ) then
+        print( b1, b2, b3, "SHIT" )
+    end
+
     if ( b3 ) then
         return tBytetoANSI[b1][b2][b3]
     end
@@ -55,9 +59,10 @@ local function construct()
             --print( t[1], t[2], i, a )
         end
 
-        --[[if ( t[1] == 195 and t[2] == 180 ) then
-            print( t[1], t[2], i, string.ANSI( i ) )
-        end --]]
+        --[==[ if ( t[1] == 189 and t[2] == 195 ) then
+            print( t[1], t[2], t[3], string.ANSI( i ) )
+            print( tBytetoANSI[t[1]] )
+        end ]==]--
     end
 end
 
