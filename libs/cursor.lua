@@ -27,7 +27,7 @@ function draw.touchended( t )
     exec( "touch.end", t )
 
     if ( t.id == 1 ) then
-        dx, dy = t.x - mx, t.y - my
+        dx, dy = 0, 0
         mx, my = t.x, t.y
         mh = false
     end
