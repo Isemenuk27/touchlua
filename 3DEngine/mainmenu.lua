@@ -9,7 +9,9 @@ local function killbuttons()
 end
 
 local function menucreate( w, h )
-    for _, f in ipairs( sys.dir( "scenes" ) ) do
+    local dir = sys.dir( "scenes" )
+
+    for _, f in ipairs( dir ) do
         if ( not string.EndsWith( f, ".lua" ) ) then
             goto skipsceneload
         end
