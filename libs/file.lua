@@ -481,6 +481,74 @@ function CFile:WriteFloat( nNumber )
 end
 
 -- **********************************
+--             WTF?
+
+function CFile:ReadBool3()
+    local sData = self:Read( 1 )
+    local bOut = string.byte( sData ) > 0
+    return bOut, 1
+end
+
+local function isASCII( nByte )
+    return nByte < 0x80
+end
+
+local function isPage( nByte )
+    return nByte > 191
+end
+
+function CFile:ReadUByte3()
+    local tBytes = {}
+    local bPageWasRead = false
+
+    ::read::
+
+    do
+        local sData = self:Read( 1 )
+
+        if ( sData == nil ) then return false, 1 end
+
+        local nByte = string.byte( sData )
+
+        if ( isASCII( nByte ) ) then
+            if ( bPageWasRead ) then
+                self:Seek( -1, "cur" )
+                goto finish
+            else
+                return nByte, 1, sData
+            end
+        end
+
+        if ( isPage( nByte ) ) then
+            if ( bPageWasRead ) then
+                self:Seek( -1, "cur" )
+                goto finish
+            else
+                bPageWasRead = true
+            end
+        end
+
+        table.insert( tBytes, nByte )
+    end
+
+    goto read
+
+    ::finish::
+
+    local sChar
+
+    if ( #tBytes > 2 ) then -- Magic
+        sChar = utf8.char( table.unpack( tBytes ) )
+    else
+        sChar = string.char( table.unpack( tBytes ) )
+    end
+
+    return utf8.codepoint( sChar ), 1, sChar
+end
+
+CFile.ReadByte3 = CFile.ReadUByte3
+
+-- **********************************
 
 function CFile:Close()
     self.IOFile:close()
@@ -494,13 +562,27 @@ function CFile:Read( ... )
     return self.IOFile:read( ... )
 end
 
-
 function CFile:Seek( nOffset, sBasePos )
     return self.IOFile:seek( sBasePos or "set", nOffset )
 end
 
 function CFile:Valid()
     return self.IOFile ~= nil
+end
+
+function CFile:Tell( ... )
+    return self.IOFile:seek( ... )
+end
+
+function CFile:EndPointer()
+    local nCur = self:Tell()
+    local nOut = self:Tell( "end" )
+    self:Seek( nCur )
+    return nOut
+end
+
+function CFile:CurPointer()
+    return self:Tell()
 end
 
 -- **********************************
