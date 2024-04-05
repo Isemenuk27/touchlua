@@ -35,11 +35,16 @@ function CStream:ReadFromFile( cFile )
     local nEnd = cFile:seek( "end" )
     cFile:seek( "set", 0 )
 
+    local nPointer = self.nPointer
+
     while ( cFile:seek() < nEnd ) do
         local sChar = readUTF8Char( cFile )
         local nCode = utf8.codepoint( sChar )
-        self:Write( translateUnicodeTo1252( nCode ) or nCode )
+        self:WriteNoJump( translateUnicodeTo1252( nCode ) or nCode, nPointer )
+        nPointer = nPointer + 1
     end
+
+    self.nPointer = nPointer
 
     return self
 end
