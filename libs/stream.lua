@@ -1,12 +1,10 @@
+assert( translateUnicodeTo1252, "1252xUnicode lib is required!" )
+
 local sErrorNoFile = "Invalid file."
 local sErrorOOB = "Trying to read out for bounds"
 
 CStream = {}
 CStream.__index = CStream
-
-local function sign( a )
-    return ( a > 0 and 1 ) or ( a < 0 and -1 ) or 0
-end
 
 function Stream()
     local cStream = {
@@ -20,19 +18,30 @@ end
 
 --[[================================]]--
 
+-- https://stackoverflow.com/questions/29856166/lua-read-one-utf-8-character-from-file#29857160
+local function readUTF8Char( cFile )
+    local c1 = cFile:read(1)
+    local ctr, c = -1, math.max( c1:byte(), 128 )
+    repeat
+        ctr = ctr + 1
+        c = (c - 128)*2
+    until c < 128
+    return c1 .. cFile:read( ctr )
+end
+
 function CStream:ReadFromFile( cFile )
     assert( cFile, sErrorNoFile )
 
-    while ( true ) do
-        local sRead = cFile:read( 0x1000 )
-        if ( not sRead ) then
-            break
-        end
+    local nEnd = cFile:seek( "end" )
+    cFile:seek( "set", 0 )
 
-        for sChar in string.gmatch( sRead, "." ) do
-            self:Write( string.byte( sChar ) )
-        end
+    while ( cFile:seek() < nEnd ) do
+        local sChar = readUTF8Char( cFile )
+        local nCode = utf8.codepoint( sChar )
+        self:Write( translateUnicodeTo1252( nCode ) or nCode )
     end
+
+    return self
 end
 
 --[[================================]]--
@@ -87,6 +96,14 @@ end
 function CStream:InBounds( nPoint )
     nPoint = nPoint or self.nPointer
     return ( nPoint > #self.tData and nPoint < 0 )
+end
+
+function CStream:Size()
+    return #self.tData + 1
+end
+
+function CStream:Tell()
+    return self.nPointer
 end
 
 --[[================================]]--
@@ -246,3 +263,5 @@ end
 function CStream:WriteFloat( nNumber )
     return self:WriteUInt( string.unpack( "I", string.pack( "<f", nNumber ) ) )
 end
+
+--[[================================]]--
