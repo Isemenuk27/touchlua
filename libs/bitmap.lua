@@ -1,5 +1,4 @@
-assert( CFile, "file lib should be included first" )
-assert( string.ANSI, "ansi lib should be included too" )
+assert( CStream, "Stream lib should be included first" )
 
 local function bitmap()
     return {
@@ -8,60 +7,73 @@ local function bitmap()
         nOffetBits = 0,
         nWidth = 0,
         nHeight = 0,
+        nRowSize = 0,
+        nRowWidth = 0,
         nBitsPerPixel = 0,
+        nPixelArraySize = 0,
         nSize = 0,
         nCompressionType = 0,
         sMagic = true,
         nImageSize = 0,
+        nNumPixels = 0,
         tContent = {},
     }
 end
 
-function parseBitmapFile( cFile )
+function parseBitmap( cStream )
     local tBitmap = bitmap()
 
+    cStream:Jump( 0 )
+
     -- Read header
-    tBitmap.sMagic = cFile:Read( 2 ) -- Magic numbers
-    tBitmap.nSize = cFile:ReadULong() -- The size of the BMP file in bytes
-    cFile:ReadUShort() -- Reserved 1
-    cFile:ReadUShort() -- Reserved 2
+    tBitmap.sMagic = cStream:ReadUByte() + cStream:ReadUByte() -- Magic numbers
+    tBitmap.nSize = cStream:ReadUInt() -- The size of the BMP file in bytes
+    cStream:ReadUInt() -- Reserved 1
+    --cStream:ReadUInt() -- Reserved 2
 
     -- starting address, of the byte where the bitmap image data written
-    tBitmap.nOffetBits = cFile:ReadULong()
+    tBitmap.nOffetBits = cStream:ReadUInt()
 
     -- bitmap information header
-    tBitmap.nHeaderSize = cFile:ReadULong() -- The size of this header
+    tBitmap.nHeaderSize = cStream:ReadUInt() -- The size of this header
 
-    tBitmap.nWidth = cFile:ReadULong()
-    tBitmap.nHeight = cFile:ReadULong()
+    tBitmap.nWidth = cStream:ReadUInt()
+    tBitmap.nHeight = cStream:ReadUInt()
 
     -- The number of color planes
-    cFile:ReadUShort() -- Should be 1, usually
+    cStream:ReadUShort() -- Should be 1, usually
 
-    tBitmap.nBitsPerPixel = cFile:ReadUShort()
+    tBitmap.nBitsPerPixel = cStream:ReadUShort()
+    tBitmap.nChannels = tBitmap.nBitsPerPixel == 32 and 4 or 3
 
-    tBitmap.nCompressionType = cFile:ReadULong()
-    tBitmap.nImageSize = cFile:ReadULong()
+    tBitmap.nRowSize = 4 * math.ceil( ( tBitmap.nBitsPerPixel * tBitmap.nWidth ) / 32 )
+    tBitmap.nRowWidth = tBitmap.nRowSize / tBitmap.nChannels
+    tBitmap.nFakeRowPixels = tBitmap.nRowWidth - tBitmap.nWidth
+    tBitmap.nPixelArraySize = tBitmap.nRowSize * math.abs( tBitmap.nHeight )
 
-    cFile:ReadULong() -- Dimensions
-    cFile:ReadULong() -- For printing, gonna skip
+    tBitmap.nCompressionType = cStream:ReadUInt()
+    tBitmap.nImageSize = cStream:ReadUInt()
+
+    cStream:ReadUInt() -- Dimensions
+    cStream:ReadUInt() -- For printing, gonna skip
 
     -- the number of colors in the color palette
-    cFile:ReadULong()
+    cStream:ReadUInt()
     -- the number of important colors used
-    cFile:ReadULong()
+    cStream:ReadUInt()
 
-    tBitmap.nChannels = tBitmap.nBitsPerPixel * .125
+    cStream:Jump( tBitmap.nOffetBits )
 
-    cFile:Tell( "set", 0 )
+    local i = 0
 
-    for i = 1, tBitmap.nOffetBits do
-        cFile:ReadUByte() -- Bitch
+    local nEndPos = tBitmap.nOffetBits + tBitmap.nPixelArraySize
+    for _, nByte in cStream:Iterator( tBitmap.nOffetBits, nEndPos ) do
+        tBitmap.tContent[i] = nByte
+        i = i + 1
     end
 
-    for i = 0, tBitmap.nHeight * tBitmap.nWidth * tBitmap.nChannels - 1 do
-        tBitmap.tContent[i] = cFile:ReadUByte()
-    end
+    tBitmap.nNumPixels = tBitmap.nPixelArraySize / tBitmap.nChannels
 
     return tBitmap
 end
+
