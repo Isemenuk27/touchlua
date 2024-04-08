@@ -26,7 +26,7 @@ local function readUTF8Char( cFile )
         ctr = ctr + 1
         c = (c - 128)*2
     until c < 128
-    return c1 .. cFile:read( ctr )
+    return ( ( ctr == 0 ) and c1 or ( c1 .. cFile:read( ctr ) ) )
 end
 
 function CStream:ReadFromFile( cFile )
