@@ -1,0 +1,3 @@
+Open files in any other editor, set encoding to windows-1252, copy everything and paste in created file.
+
+If you have rooted phone you may try simply find Touch Lua's working directory and paste files directly.
