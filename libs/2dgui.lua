@@ -26,9 +26,8 @@ function GUI.Touch( t )
     local nTId, nX, nY
 
     if ( cursorplus ) then
-        local cCursor = cursor.getCursor( t )
-        nTId = cCursor.id
-        nX, nY = vec2unpack( cCursor.pos )
+        nTId = t.nTId
+        nX, nY = cursor.pos2( t )
     else
         nTId, nX, nY = t.id, t.x, t.y
     end
@@ -48,12 +47,9 @@ function GUI.Touch( t )
 end
 
 function GUI.Moved( t )
-    local nTId, nX, nY
-
     if ( cursorplus ) then
-        local cCursor = cursor.getCursor( t )
-        nTId = cCursor.id
-        nX, nY = vec2unpack( cCursor.pos )
+        nTId = t.nTId
+        nX, nY = cursor.pos2( t )
     else
         nTId, nX, nY = t.id, t.x, t.y
     end
@@ -82,11 +78,9 @@ function GUI.Moved( t )
 end
 
 function GUI.Stop( t )
-    local nTId, nX, nY
-
     if ( cursorplus ) then
-        local cCursor = cursor.getCursor( t )
-        nTId = cCursor.id; nX, nY = vec2unpack( cCursor.pos )
+        nTId = t.nTId
+        nX, nY = cursor.pos2( t )
     else
         nTId, nX, nY = t.id, t.x, t.y
     end
