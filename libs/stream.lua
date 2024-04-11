@@ -53,11 +53,13 @@ end
 
 function CStream:WriteToFile( cFile )
     assert( cFile, sErrorNoFile )
+    local sWrite = ""
 
     for _, nByte in self:Iterator() do
-        --cFile:write( nByte )
-        cFile:write( string.char( nByte ) )
+        sWrite = sWrite .. utf8.char( nByte )
     end
+
+    cFile:write( sWrite )
 end
 
 --[[================================]]--
