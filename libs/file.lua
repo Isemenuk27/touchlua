@@ -1,3 +1,15 @@
+-- !!!!    !!!!      !!!!      !!!!
+-- Broken and doesn't work as expected!!!
+-- Use Stream instead!!!
+
+-- !!!!    !!!!      !!!!      !!!!
+-- Broken and doesn't work as expected!!!
+-- Use Stream instead!!!
+
+-- !!!!    !!!!      !!!!      !!!!
+-- Broken and doesn't work as expected!!!
+-- Use Stream instead!!!
+
 CFile = {}
 CFile.__index = CFile
 
