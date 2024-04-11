@@ -1,3 +1,5 @@
+-- WIP 
+
 gui = {
     tCache = {},
     sRegistered = {},
@@ -98,6 +100,37 @@ callback( cursor.tCallbacks.ended, touchEnded )
 
 local mTrMat = mat3()
 
+local renderWindows, renderWindow
+do
+    renderWindow = function( gWindow )
+        local gParent = gWindow.gParent
+
+        if ( gParent ) then
+            mat3setTr( mTrMat, vec2unpack( gParent.vPos ) )
+            mat3addTr( mTrMat, vec2unpack( gParent.vLocalPos ) )
+        else
+            mat3setTr( mTrMat, vec2unpack( gWindow.vPos ) )
+        end
+        mat3addTr( mTrMat, vec2unpack( gWindow.vLocalPos ) )
+
+        local w, h = vec2unpack( gWindow.vSize )
+        validCall( gWindow.draw, gWindow, w, h )
+        validCall( gWindow.postDraw, gWindow, w, h )
+
+        if ( gWindow.tChildren ) then
+            renderWindows( tWindows )
+        end
+    end
+
+    renderWindows = function( tWindows )
+        for i, gWindow in ipairs( tWindows ) do
+            if ( gWindow.bDraw ) then
+                renderWindow( gWindow )
+            end
+        end
+    end
+end
+
 function gui.think( CT, DT )
     handleControls()
 
@@ -107,25 +140,35 @@ function gui.think( CT, DT )
 
     draw.pushmatrix( mTrMat )
 
+    local tRenderFirst = {}
+
     for i, gWindow in ipairs( gui.tCache ) do
-        mat3setTr( mTrMat, vec2unpack( gWindow.vPos ) )
-        local w, h = vec2unpack( gWindow.vSize )
-        validCall( gWindow.draw, gWindow, w, h )
-        validCall( gWindow.postDraw, gWindow, w, h )
+        if ( gWindow.bDraw and not gParent ) then
+            table.insert( tRenderFirst, gWindow )
+        end
     end
+
+    table.sort( tRenderFirst, function( a, b ) return a.nZPos > b.nZPos end )
+
+    renderWindows( tRenderFirst )
 
     draw.popmatrix()
 end
 
 function gui.new( sClass, gParent )
-    local gWindow = setmetatable( {
-        vPos = vec2( 600, 700 ),
-        vSize = vec2( 400, 130 ),
-        vCenter = vec2(),
-        gParent = false,
-        nZPos = 0,
-    }, gui.sRegistered[sClass] )
-    validCall( gWindow.init, gWindow )
+    assert( gui.get( sClass ), "Class is not registered " .. tostring( sClass ) )
+
+    local gWindow = gui.get( sClass )()
+
+    gWindow.vPos = vec2( 600, 700 )
+    gWindow.vSize = vec2( 400, 130 )
+    gWindow.vLocalPos = vec2( 0, 0 )
+    gWindow.vCenter = vec2()
+    gWindow.gParent = false
+    gWindow.tChildren = false
+    gWindow.bDraw = true
+    gWindow.nZPos = 0
+
     validCall( gWindow.postinit, gWindow )
     table.insert( gui.tCache, gWindow )
     return gWindow
@@ -142,12 +185,12 @@ end
 function gui.register( tWindow )
     local sClass = tWindow.sClassname
     assert( sClass, "trying to register window without classname" )
+
     if ( tWindow.sBase ) then
-        local tFrame = gui.get( tWindow.sBase )
-        setmetatable( tWindow, tFrame )
-        tWindow.tBase = tFrame
+        gui.sRegistered[sClass] = gui.get( tWindow.sBase ):extend()
+    else
+        gui.sRegistered[sClass] = tWindow
     end
-    gui.sRegistered[sClass] = tWindow
 end
 
 function gui.invalidateChildren( gWindow, gChild )
