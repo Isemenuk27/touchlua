@@ -209,6 +209,19 @@ function SortedPairsByValue( pTable, Desc )
         table.sort( sortedTbl, function( a, b ) return a.val < b.val end )
     end
 
-    return keyValuePairs, { Index = 0, KeyValues = sortedTbl }, 0
+    return keyValuePairs, { Index = 0, KeyValues = sortedTbl }
 
+end
+
+function table.enum( tParams )
+    local nId = 0
+
+    for nKey, nValue in pairs( tParams ) do
+        if ( isnumber( nKey ) ) then
+            _G[nValue] = nId
+            nId = nId + 1
+        else
+            _G[nKey] = nValue
+        end
+    end
 end
