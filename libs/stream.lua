@@ -82,8 +82,17 @@ function CStream:Read()
     return self.tData[self.nPointer - 1]
 end
 
-function CStream:ReadNoJump( nBytes )
-    return table.unpack( self.tData, self.nPointer, self.nPointer + ( nBytes or 0 ) )
+function CStream:ReadNoJump()
+    return self.tData[self.nPointer]
+end
+
+function CStream:ReadString( nChars )
+    local sOut = ""
+    for i = 1, nChars do
+        local nByte = self:ReadUByte()
+        sOut = sOut .. utf8.char( nByte )
+    end
+    return sOut
 end
 
 --[[================================]]--
