@@ -15,3 +15,5 @@ Many scripts require draw library.
 ![IMG4](https://github.com/Isemenuk27/touchlua/blob/a25ca2de9f6a8bda9ba91e90525c548f19d935b1/screenshots/IMG_20240123_113334.jpg)
 
 ![IMG5](https://github.com/Isemenuk27/touchlua/blob/main/screenshots%2FIMG_20240409_085752.jpg)
+
+![IMG6](screenshots/IMG_20240418_101535.jpg)
