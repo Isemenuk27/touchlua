@@ -26,7 +26,7 @@ function parseBitmap( cStream )
     cStream:Jump( 0 )
 
     -- Read header
-    tBitmap.sMagic = cStream:ReadUByte() + cStream:ReadUByte() -- Magic numbers
+    tBitmap.sMagic = cStream:ReadString( 2 ) -- Magic
     tBitmap.nSize = cStream:ReadUInt() -- The size of the BMP file in bytes
     cStream:ReadUInt() -- Reserved 1
     --cStream:ReadUInt() -- Reserved 2
