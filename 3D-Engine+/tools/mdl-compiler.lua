@@ -4,7 +4,7 @@ local tRequirements = {
     "libs/math",
     "libs/1252xUnicode",
     "libs/stream",
-    "libs/vec3",
+    "libs/vec3+",
     "libs/vec2",
 }
 
@@ -78,33 +78,36 @@ local readObj do
 
         local tOut = {}
 
-        local nHeaderSize = 3 + 4 * 2 + 1
-
-        local nVertexDataSize = 4 * 5
-        local nVertexArraySize = #tPointArray * nVertexDataSize
-
-        -- PrintTable( tFaceArray )
+        local nLumps = 3
 
         cStream:Jump( 0 )
         cStream:WriteString( "MDL" ) -- 3 Bytes
 
-        -- Vertex Data
-        cStream:WriteUShort( nHeaderSize ) -- 2 Bytes
-        cStream:WriteUShort( nHeaderSize + nVertexArraySize ) -- 2 Bytes
+        local nPoint = 3 + ( 2 * 2 * nLumps )
 
-        -- Triangle Data
-        local nFaceArraySize = 2 * 3 * #tFaceArray
-        cStream:WriteUShort( nHeaderSize + nVertexArraySize ) -- 2 Bytes
-        cStream:WriteUShort( nHeaderSize + nVertexArraySize + nFaceArraySize ) -- 2 Bytes
+        -- Vertex Data Lump info
+        cStream:WriteUShort( nPoint ) -- 2
+        local nSize = #tPointArray * 5 * 4
+        cStream:WriteUShort( nSize ) -- 2
 
-        local nAdditionalModelData =
-        cStream:WriteUShort( nHeaderSize + nVertexArraySize + nFaceArraySize ) -- 2 Bytes
-        cStream:WriteUShort( nHeaderSize + nVertexArraySize + nFaceArraySize + nAdditionalModelData ) -- 2 Bytes
+        -- Face Data Lump info
+        nPoint = nPoint + nSize
+        cStream:WriteUShort( nPoint ) -- 2
+        nSize = #tFaceArray * 2 * 3
+        cStream:WriteUShort( nSize ) -- 2 Bytes
+
+        -- Additional data lump info
+        nPoint = nPoint + nSize
+        cStream:WriteUShort( nPoint ) -- 2 Bytes
+        nSize = 7 * 4 + 1
+        cStream:WriteUShort( nSize ) -- 2
 
         -- Write vertecies
+        local nShit = 0
+
         for nKey, vPoint in ipairs( tPointArray ) do
             local vUV = tUVArray[nKey]
-            --print( vec3tostring( vPoint ), vec2tostring( vUV ) )
+
             cStream:WriteFloat( vPoint[1] ) -- 4
             cStream:WriteFloat( vPoint[2] ) -- 4
             cStream:WriteFloat( vPoint[3] ) -- 4
@@ -122,15 +125,37 @@ local readObj do
 
         -- Additional data
         do
-            cStream:WriteUByte( 1 ) -- Version
+            cStream:WriteUByte( 250 ) -- Version
 
             -- Bounding box min/max
+            local nRadius = 0
+            local nMaxX, nMaxY, nMaxZ = math.mininteger, math.mininteger, math.mininteger
+            local nMinX, nMinY, nMinZ = math.maxinteger, math.maxinteger, math.maxinteger
 
+            for nKey, vPoint in ipairs( tPointArray ) do
+                nMaxX = math.max( vPoint[1], nMaxX )
+                nMaxY = math.max( vPoint[2], nMaxY )
+                nMaxZ = math.max( vPoint[3], nMaxZ )
 
+                nMinX = math.min( vPoint[1], nMinX )
+                nMinY = math.min( vPoint[2], nMinY )
+                nMinZ = math.min( vPoint[3], nMinZ )
 
+                nRadius = math.max( vec3sqrmag( vPoint ), nRadius )
+            end
+
+            nRadius = math.sqrt( nRadius )
+
+            cStream:WriteFloat( nMinX ) -- 4
+            cStream:WriteFloat( nMinY ) -- 4
+            cStream:WriteFloat( nMinZ ) -- 4
+
+            cStream:WriteFloat( nMaxX ) -- 4
+            cStream:WriteFloat( nMaxY ) -- 4
+            cStream:WriteFloat( nMaxZ ) -- 4
+
+            cStream:WriteFloat( nRadius ) -- 4
         end
-
-        --PrintTable( cStream )
 
         return cStream
     end
@@ -166,8 +191,9 @@ for _, sFileName in ipairs( tRawFiles ) do
     cStreamOut:WriteToFile( cFile )
 
     cFile:close()
-    print( sFileName, string.NiceSize( ( #cStreamOut + 1 ) * 1024 ) )
+    print( sFileName, string.NiceSize( cStreamOut:Size() ) )
 
+    --break
     ::skip::
 end
 
