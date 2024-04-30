@@ -68,11 +68,13 @@ function PrintTable(tbl, r)
 end
 
 function table.copy( t )
-    local o = {}
+    return table.copyTo( t, {} )
+end
 
+function table.copyTo( t, o )
     for key, value in pairs( t ) do
         if ( istable( value ) ) then
-            o[key] = table.copy( value )
+            o[key] = table.copyTo( value, o[key] or {} )
         else
             o[key] = value
         end
@@ -81,8 +83,8 @@ function table.copy( t )
     return o
 end
 
-function table.shiftLeft(tbl)
-    local firstValue = tbl[1]
+function table.shiftleft(tbl)
+    local firstvlue = tbl[1]
     for i = 1, #tbl - 1 do
         tbl[i] = tbl[i + 1]
     end
@@ -107,9 +109,10 @@ function table.KeyFromValue( tbl, val )
 end
 
 function table.RemoveByValue( tbl, val )
-
     local key = table.KeyFromValue( tbl, val )
-    if ( not key ) then return false end
+    if ( not key ) then
+        return false
+    end
 
     if ( isnumber( key ) ) then
         table.remove( tbl, key )
@@ -118,7 +121,6 @@ function table.RemoveByValue( tbl, val )
     end
 
     return key
-
 end
 
 
@@ -210,18 +212,36 @@ function SortedPairsByValue( pTable, Desc )
     end
 
     return keyValuePairs, { Index = 0, KeyValues = sortedTbl }
-
 end
 
-function table.enum( tParams )
-    local nId = 0
+local tEnumModes = {
+    bitmask = function( tParams )
+        local nId = 0
 
-    for nKey, nValue in pairs( tParams ) do
-        if ( isnumber( nKey ) ) then
-            _G[nValue] = nId
-            nId = nId + 1
-        else
-            _G[nKey] = nValue
+        for nKey, nValue in pairs( tParams ) do
+            if ( isnumber( nKey ) ) then
+                _G[nValue] = 2 ^ nId
+                nId = nId + 1
+            else
+                _G[nKey] = nValue
+            end
+        end
+    end,
+
+    function( tParams )
+        local nId = 0
+
+        for nKey, nValue in pairs( tParams ) do
+            if ( isnumber( nKey ) ) then
+                _G[nValue] = nId
+                nId = nId + 1
+            else
+                _G[nKey] = nValue
+            end
         end
     end
+}
+
+function table.enum( tParams, sMode )
+    return tEnumModes[sMode or 1](tParams)
 end
