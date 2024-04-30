@@ -106,26 +106,26 @@ end
 --Lerps vector
 function vec3lerp( nF, vStart, vEnd, vOut )
     vOut = vec3diff( vStart, vEnd, vOut or vec3() )
-    vec3mul( vOut, nF )
-    return vec3add( vOut, vStart )
+    vec3mulv( vOut, nF )
+    return vec3addv( vOut, vStart )
 end
 
 --Reflects direction by normal
 function vec3reflect( vDir, vNormal, vOut )
     local nF = -2 * vec3dot( vNormal, vDir )
-    vOut = vec3set( vOut or vec3(), vNormal )
-    vec3add( vOut, vDir )
+    vOut = vec3setv( vOut or vec3(), vNormal )
+    vec3addv( vOut, vDir )
     return vec3mul( vOut, nF )
 end
 
 --Writes difference ( B-A ) to vC or creates new one
 function vec3diff( vA, vB, vC )
-    return vec3set( vC or vec3(), vB[1] - vA[1], vB[2] - vA[2], vB[3] - vA[3] )
+    return vec3setc( vC or vec3(), vB[1] - vA[1], vB[2] - vA[2], vB[3] - vA[3] )
 end
 
 --Flips direction backwards
 function vec3negate( vA )
-    return vec3set( vA, -vA[1], -vA[2], -vA[3] )
+    return vec3setc( vA, -vA[1], -vA[2], -vA[3] )
 end
 
 --Normalizes vector
@@ -150,12 +150,12 @@ end
 
 --Dot
 function vec3dot( vA, vB )
-    return vA[1] * vB[1] + vA[2] * vB[2] + vA[3] * vB[3]
+    return ( vA[1] * vB[1] ) + ( vA[2] * vB[2] ) + ( vA[3] * vB[3] )
 end
 
 --Cross
 function vec3cross( vA, vB, vC )
-    return vec3set( vC or vec3(),
+    return vec3setc( vC or vec3(),
     vA[2] * vB[3] - vA[3] * vB[2],
     vA[3] * vB[1] - vA[1] * vB[3],
     vA[1] * vB[2] - vA[2] * vB[1] )
@@ -163,7 +163,7 @@ end
 
 --Converts Euler angles ( in radians ) to direction vector
 function vec3fromEuler( vA, nP, nY, nR )
-    return vec3set( vA or vec3(),
+    return vec3setc( vA or vec3(),
     -cos(nY) * sin(nP) * sin(nR) - sin(nY) * cos(nR),
     -sin(nY) * sin(nP) * sin(nR) + cos(nY) * cos(nR),
     cos(nP) * sin(nR) )
