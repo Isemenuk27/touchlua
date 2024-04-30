@@ -11,6 +11,7 @@ local tTextures = {
 local tModels = {
     "cube.mdl",
     "triangle.mdl",
+    "plane.mdl",
 }
 
 do
