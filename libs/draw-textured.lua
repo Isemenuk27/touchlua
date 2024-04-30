@@ -15,7 +15,7 @@ local function sign( a )
 end
 
 local function rgbset( rgb, r, g, b )
-    rgb[1], rgb[2], rgb[3] = r, g, b
+    rgb[1], rgb[2], rgb[3] = r or 1, g or 1, b or 1
 end
 
 --************************************
