@@ -20,10 +20,6 @@ function string.Explode( sSeparator, sInput )
     return tRes
 end
 
-function printf( sFormat, ... )
-    return print( string.format( sFormat, ... ) )
-end
-
 function string.Split( str, delimiter )
     return string.Explode( delimiter, str )
 end
@@ -131,4 +127,35 @@ local sFormat = "[^\n]+"
 
 function string.lines( sStr )
     return string.gmatch( sStr, sFormat )
+end
+
+function printf( sFormat, ... )
+    return print( string.format( sFormat, ... ) )
+end
+
+local sMat4F =
+[[%.01f, %.01f, %.01f, %.01f,
+%.01f, %.01f, %.01f, %.01f,
+%.01f, %.01f, %.01f, %.01f,
+%.01f, %.01f, %.01f, %.01f
+]];
+
+local sMat3F =
+[[%.01f, %.01f, %.01f,
+%.01f, %.01f, %.01f,
+%.01f, %.01f, %.01f
+]];
+
+function printm( m )
+    if ( #m == 3 ) then
+        return printf( sMat4F, mat4unpack( m ) )
+    end
+    return printf( sMat3F, mat3unpack( m ) )
+end
+
+function printv( vVec )
+    if ( vVec[3] ) then
+        return print( vec3tostring( vVec ) )
+    end
+    return print( vec2tostring( vVec ) )
 end
