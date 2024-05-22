@@ -13,11 +13,14 @@ local function sign( x )
 end
 
 function math.normalFrom3Points( vP1, vP2, vP3, vOutNormal )
-    vec3diff( vP2, vP1, vDiffBA )
-    vec3diff( vP3, vP1, vDiffCA )
-    vOutNormal = vec3cross( vDiffBA, vDiffCA, vOutNormal or vec3() )
-    vec3mul( vOutNormal, 1 / vec3mag( vOutNormal ) )
-    return vOutNormal
+    vec3setv( vDiffBA, vP2 )
+    vec3subv( vDiffBA, vP1 )
+
+    vec3setv( vDiffCA, vP3 )
+    vec3subv( vDiffCA, vP1 )
+    local vOut = vec3cross( vDiffBA, vDiffCA, vOutNormal or vec3() )
+    vec3normalize( vOut )
+    return vOut
 end
 
 function math.centerOf3Points( vP1, vP2, vP3, vOutPos )
@@ -67,5 +70,5 @@ function math.planeLineIntersection( vOrigin, nNormal, vStart, vEnd, vOut )
 
     vOut = vec3diff( vStart, vEnd, vOut or vec3() )
     vec3mul( vOut, -nT )
-    return vec3add( vOut, vStart )
+    return vec3add( vOut, vStart ), nT
 end
