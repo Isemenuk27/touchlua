@@ -14,7 +14,7 @@ function cam.new()
 
         tFrustum = false,
         mProj = false,
-        nFov = math.pi,
+        nFov = math.pi, -- Vertical Fov
 
         nWidth = 0,
         nHeight = 0,
@@ -24,6 +24,8 @@ function cam.new()
         nAspect = 0,
         nFarZ = 0,
         nNearZ = 0,
+
+        nVW = 2 ^ 4,
     }
 end
 
@@ -63,6 +65,10 @@ function cam.up( tCam )
     return tCam.vUpDir
 end
 
+function cam.setResolution( tCam, n )
+    tCam.nVW = n
+end
+
 function cam.buildPerspective( tCam, nFov, nW, nH, nNearZ, nFarZ )
     tCam.nFov = nFov
     tCam.nWidth = nW
@@ -70,6 +76,8 @@ function cam.buildPerspective( tCam, nFov, nW, nH, nNearZ, nFarZ )
     tCam.nAspect = nW / nH
     tCam.nNearZ = nNearZ
     tCam.nFarZ = nFarZ
+
+    --print( tCam, nFov, nW, nH, nNearZ, nFarZ )
 
     local nAspect = tCam.nAspect
 
@@ -91,25 +99,71 @@ function cam.buildPerspective( tCam, nFov, nW, nH, nNearZ, nFarZ )
     tCam.mProj = mProj
 
     tCam.tFrustum = cam.newFrustum( nFov, nAspect, nNearZ, nFarZ )
-    cam.buildPerspectiveFrustum( tCam.tFrustum )
+    cam.buildPerspectiveFrustum( tCam )
     return tCam
 end
 
-function cam.buildPerspectiveFrustum()
+local vZero = vec3()
 
+function cam.buildPerspectiveFrustum( tCam )
+    local nFarZ, nNearZ, nFov, nAspect =
+    tCam.nFarZ, tCam.nNearZ, tCam.nFov, tCam.nAspect
+
+    local nO = math.tan( nFov * .5 )
+
+    -- b = a * tan(O)
+    local nHeightNear, nHeightFar =
+    nO * nNearZ, nO * nFarZ
+    local nWidthNear, nWidthFar =
+    nHeightNear * nAspect, nHeightFar * nAspect
+
+    local vFarTopRight, vFarTopLeft, vFarBottomRight, vFarBottomLeft =
+    vec3( -nWidthFar, nHeightFar, nFarZ ), vec3( nWidthFar, nHeightFar, nFarZ ),
+    vec3( -nWidthFar, -nHeightFar, nFarZ ), vec3( nWidthFar, -nHeightFar, nFarZ )
+
+    local vNearTopRight, vNearTopLeft, vNearBottomRight, vNearBottomLeft =
+    vec3( -nWidthNear, nHeightNear, nNearZ ), vec3( nWidthNear, nHeightNear, nNearZ ),
+    vec3( -nWidthNear, -nHeightNear, nNearZ ), vec3( nWidthNear, -nHeightNear, nNearZ )
+
+    local tPlanes = tCam.tFrustum.tOriginalPlanes
+
+    -- Near plane
+    table.insert( tPlanes, vec3( 0, 0, nNearZ ) )
+    table.insert( tPlanes, vec3( 0, 0, 1) )
+
+    -- Far plane
+    table.insert( tPlanes, vec3( 0, 0, nFarZ ) )
+    table.insert( tPlanes, vec3( 0, 0, -1 ) )
+
+    --Right plane
+    table.insert( tPlanes, vec3() )
+    table.insert( tPlanes, math.normalFrom3Points(
+    vFarTopRight, vFarBottomRight, vNearBottomRight ) )
+
+    --Left plane
+    table.insert( tPlanes, vec3() )
+    table.insert( tPlanes, math.normalFrom3Points(
+    vFarBottomLeft, vFarTopLeft, vNearTopLeft ) )
+
+    --Top plane
+    table.insert( tPlanes, vec3() )
+    table.insert( tPlanes, math.normalFrom3Points(
+    vFarTopLeft, vFarTopRight, vNearTopRight ) )
+
+    --Bottom plane
+    table.insert( tPlanes, vec3() )
+    table.insert( tPlanes, math.normalFrom3Points(
+    vFarBottomRight, vFarBottomLeft, vNearBottomRight ) )
+
+    for nI = 1, #tPlanes do
+        tCam.tFrustum.tPlanes[nI] = vec3()
+    end
 end
 
 function cam.newFrustum( nFov, nAspect, nNearZ, nFarZ )
     return {
-        vTop = vec3(),
-        vBottom = vec3(),
-
-        vRight = vec3(),
-        vLeft = vec3(),
-
-        vFar = vec3(),
-        vNear = vec3(),
-
+        tOriginalPlanes = {},
+        tPlanes = {},
         nFarZ = nFarZ,
         nNearZ = nNearZ,
         nFov = nFov,
@@ -117,6 +171,42 @@ function cam.newFrustum( nFov, nAspect, nNearZ, nFarZ )
     }
 end
 
-function cam.updateFrustum( nTime, nFrameTime )
+local mTransform = mat4()
+
+local mRotationX, mRotationY, mRotationZ = mat4(), mat4(), mat4()
+local mTransform = mat4()
+
+function cam.updateFrustum( tCam )
     -- Use inverse matrix transpose
+    local vPos, vAng = cam.pos( tCam ), cam.ang( tCam )
+    local nPitch, nYaw, nRoll = vec3unpack( vAng )
+
+    mat4identity( mTransform )
+
+    mat4rotateX( mRotationX, nPitch )
+    mat4rotateY( mRotationY, nYaw )
+    mat4rotateZ( mRotationZ, nRoll )
+
+    -- Apply the to matrix
+    mat4mul( mTransform, mRotationY, mTransform )
+    mat4mul( mTransform, mRotationX, mTransform )
+    mat4mul( mTransform, mRotationZ, mTransform )
+
+    local tFrustum = tCam.tFrustum
+
+    local nLen = #tFrustum.tOriginalPlanes
+
+    -- Transform normals
+    for nI = 2, nLen, 2 do
+        mat4mulVector( mTransform, tFrustum.tOriginalPlanes[nI], tFrustum.tPlanes[nI] )
+
+    end
+
+    -- Transform origins
+    mat4setTranslation( mTransform, vPos )
+
+    for nI = 1, nLen, 2 do
+        mat4mulVector( mTransform, tFrustum.tOriginalPlanes[nI], tFrustum.tPlanes[nI] )
+        --printv( tFrustum.tPlanes[nI] )
+    end
 end
