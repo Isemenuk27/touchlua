@@ -14,7 +14,33 @@ local function istable(t)
     return type(t) == TABLE
 end
 
-if ( draw.getmatrix ) then
+if ( not bDrawNoMatrices ) then
+    draw.matstack = {}
+    draw.matstackl = 0
+
+    function draw.pushmatrix( m )
+        draw.matstackl = draw.matstackl + 1
+        draw.matstack[draw.matstackl] = m
+        return draw.matstackl
+    end
+
+    function draw.popmatrix()
+        local m = draw.matstack[draw.matstackl]
+        draw.matstack[draw.matstackl] = nil
+        draw.matstackl = draw.matstackl - 1
+        return m
+    end
+
+    draw.pushmatrix( mat3() )
+
+    function draw.getmatrix( i )
+        return draw.matstack[i]
+    end
+
+    function draw.setmatrix( m )
+        draw.matstack[1] = m
+    end
+
     oline = function( a, b, c, d, col )
         for i = draw.matstackl, 1, -1 do
             local m = draw.getmatrix( i )
@@ -192,6 +218,7 @@ TEXT_LEFT = -2
 
 local sDefaultFont, nDefaultSize = "Arial", 10
 local setFont, getTextSize = draw.setfont, draw.gettextsize
+draw.sFont, draw.nSize = sDefaultFont, nDefaultSize
 
 local function ftext( sText, nX, nY, nXA, nYA, tCol, nSize, sFont )
     if ( istable( nX ) ) then
@@ -205,25 +232,35 @@ local function ftext( sText, nX, nY, nXA, nYA, tCol, nSize, sFont )
     draw.text( sText, nDX, nDY, tCol )
 end
 
-local sFormat = "[^\n]+"
+local sFormat = "[^\r\n]*"
 local function lines( sStr )
     return string.gmatch( sStr, sFormat )
 end
 
+function draw.setFontSize( nSize )
+    draw.nSize = nSize
+    setFont( draw.sFont, nSize )
+end
+
+function draw.getFontSize()
+    return draw.nSize
+end
+
 local function etext( sText, nX, nY, nXA, nYA, tCol, nSize, sFont )
-    setFont( sFont or sDefaultFont, nSize or nDefaultSize )
+    draw.setFontSize( nSize or draw.getFontSize() )
     local _, nLH = getTextSize( sText )
+
     local i = 1
+
     for sLine in lines( sText ) do
         i = i + 1
         local nW, nH = getTextSize( sLine )
         local nHW, nHH = nW * .5, nH * .5
         local nDX, nDY = nX + nHW * nXA, nY - nHH * nYA
-        draw.text( sLine, nDX, nDY + nLH * i, tCol )
+        draw.text( sLine, nDX, nDY + nLH * i * .5, tCol )
     end
 end
 
-local nMagic = math.pi -- fits nice
 function draw.nicesize( sText, nW, nH )
     local nM, nR = 0, 0
     for sLine in lines( sText ) do
@@ -233,10 +270,16 @@ function draw.nicesize( sText, nW, nH )
         end
         nR = nR + 1
     end
-    return nMagic * math.min( nW / nM, nH / nR )
+    return math.min( nW / nM, nH / nR )
 end
 
 do
+    for sK, f in pairs( draw ) do
+        if ( type( f ) == "function" ) then
+            draw["_" .. sK] = draw[sK]
+        end
+    end
+
     draw.line = line
     draw.cross = cross
     draw.rect = rect
