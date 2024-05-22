@@ -24,7 +24,7 @@ end
 
 --Set
 function vec3setc( vA, nX, nY, nZ )
-    vA[1], vA[2], vA[3] = nX or 0, nY or nX or 0, nZ or nX or 0
+    vA[1], vA[2], vA[3] = nX, nY or nX, nZ or nX
     return vA
 end
 
@@ -41,7 +41,7 @@ end
 
 --Add
 function vec3addc( vA, nX, nY, nZ )
-    return vec3setc( vA, vA[1] + ( nX or 0 ), vA[2] + ( nY or nX or 0 ), vA[3] + ( nZ or nX or 0 ) )
+    return vec3setc( vA, vA[1] + nX, vA[2] + ( nY or nX ), vA[3] + ( nZ or nX ) )
 end
 
 function vec3addv( vA, vB )
@@ -57,7 +57,7 @@ end
 
 --Sub
 function vec3subc( vA, nX, nY, nZ )
-    return vec3setc( vA, vA[1] - ( nX or 0 ), vA[2] - ( nY or nX or 0 ), vA[3] - ( nZ or nX or 0 ) )
+    return vec3setc( vA, vA[1] - nX, vA[2] - ( nY or nX ), vA[3] - ( nZ or nX ) )
 end
 
 function vec3subv( vA, vB )
@@ -73,7 +73,7 @@ end
 
 --Mul
 function vec3mulc( vA, nX, nY, nZ )
-    return vec3setc( vA, vA[1] * ( nX or 0 ), vA[2] * ( nY or nX or 0 ), vA[3] * ( nZ or nX or 0 ) )
+    return vec3setc( vA, vA[1] * nX, vA[2] * ( nY or nX ), vA[3] * ( nZ or nX ) )
 end
 
 function vec3mulv( vA, vB )
@@ -89,7 +89,7 @@ end
 
 --Div
 function vec3divc( vA, nX, nY, nZ )
-    return vec3setc( vA, vA[1] / ( nX or 0 ), vA[2] / ( nY or nX or 0 ), vA[3] / ( nZ or nX or 0 ) )
+    return vec3setc( vA, vA[1] / nX, vA[2] / ( nY or nX ), vA[3] / ( nZ or nX ) )
 end
 
 function vec3divv( vA, vB )
@@ -140,7 +140,7 @@ end
 
 --Magnitude
 function vec3mag( vA )
-    return ( vA[1] * vA[1] + vA[2] * vA[2] + vA[3] * vA[3] ) ^ .5
+    return math.sqrt( vA[1] * vA[1] + vA[2] * vA[2] + vA[3] * vA[3] )
 end
 
 --Magnitude squared
