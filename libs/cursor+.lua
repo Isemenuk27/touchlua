@@ -1,3 +1,6 @@
+--assert( callback, "missing callback lib" )
+--assert( vec2, "vec2 lib is missing" )
+
 cursor = {
     tActive = {},
     cFakeCursor = false,
