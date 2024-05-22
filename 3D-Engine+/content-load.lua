@@ -6,12 +6,14 @@ end
 local tTextures = {
     "cat.bmp",
     "cat2.bmp",
+    --"land2.bmp"
 }
 
 local tModels = {
     "cube.mdl",
     "triangle.mdl",
     "plane.mdl",
+    "sphere.mdl",
 }
 
 do
