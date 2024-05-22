@@ -53,8 +53,8 @@ function movedata.finish( nTime, nFrameTime, tMD, tMDPrev )
     vec3mul( vUp, nM )
 
     vec3set( tMD.vWishMoveDir, vForward )
-    vec3sub( tMD.vWishMoveDir, vRight )
-    vec3sub( tMD.vWishMoveDir, vUp )
+    vec3add( tMD.vWishMoveDir, vRight )
+    vec3add( tMD.vWishMoveDir, vUp )
 
     local nP, nY, nR = vec3unpack( tMD.vViewAngle )
     vec3set( tMD.vViewAngle, clamp( nP, nMinPitch, nMaxPitch ), nY % ( math.pi * 2 ), nR )
@@ -63,6 +63,12 @@ function movedata.finish( nTime, nFrameTime, tMD, tMDPrev )
     vec3mul( tMD.vWishMoveDir, nFrameTime )
     vec3add( tMD.vOrigin, tMD.vWishMoveDir )
     vec3set( tCam.vPos, tMD.vOrigin )
+    --[[
+    local x = nTime * math.pi * .25
+    local r = 2
+    vec3set( tCam.vPos, math.cos( x ) * r, 0, math.sin( x ) * r )
+    vec3set( tCam.vAng, 0, x + math.pi * .5, 0 )
+]]
 end
 
 function movedata.getButtons()
