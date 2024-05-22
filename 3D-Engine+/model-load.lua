@@ -17,7 +17,7 @@ local function toVertexArrayPoint( nNum, nStartOffset )
 end
 
 local vNormal, vA, vB, vC = vec3(), vec3(), vec3(), vec3()
-local vBA, vCA = vec3(), vec3()
+--local vBA, vCA = vec3(), vec3()
 
 function mdl.load( sFileName )
     if ( mdl.tCache[sFileName] ) then
@@ -85,11 +85,7 @@ function mdl.load( sFileName )
         vec3set( vB, tModelData[nB], tModelData[nB+1], tModelData[nB+2] )
         vec3set( vC, tModelData[nC], tModelData[nC+1], tModelData[nC+2] )
 
-        vec3diff( vA, vB, vBA )
-        vec3diff( vA, vC, vCA )
-
-        vec3cross( vBA, vCA, vNormal )
-        vec3normalize( vNormal )
+        math.normalFrom3Points( vA, vB, vC, vNormal )
 
         tModelData[i+4], tModelData[i+5], tModelData[i+6] = vec3unpack( vNormal )
     end
