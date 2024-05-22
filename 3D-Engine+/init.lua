@@ -2,6 +2,7 @@ if ( package.pathinit ) then package.path = package.pathinit end
 package.path = package.path .. ";../?.lua"
 bInitialized = true
 sHomeDir = ""
+local sFolder = "3D-Engine+"
 
 local tRequirements = {
     "libs/string",
@@ -27,21 +28,24 @@ local tRequirements = {
     "libs/gui-framework",
     "libs/class",
 
-    "libs/draw-textured",
+    --"libs/draw-textured",
+    sFolder.."/raster",
 
-    "camera",
-    "render",
-    "model-load",
+    sFolder.."/camera",
+    sFolder.."/render",
+    sFolder.."/model-load",
 
-    "content-load",
+    sFolder.."/content-load",
 
-    "gui/themes",
-    "gui/base",
-    "gui/frame",
-    "gui/label",
+    sFolder.."/gui/themes",
+    sFolder.."/gui/base",
+    sFolder.."/gui/frame",
+    sFolder.."/gui/label",
 
-    "movedata",
-    "controls",
+    sFolder.."/movedata",
+    sFolder.."/controls",
+
+    sFolder.."/inteface",
 }
 
 local function requireEverything()
@@ -77,12 +81,12 @@ local function init()
     RunCallback( "PostInit" )
 
     -- Actual width, actual height, virtual width
-    draw.initTextured( ScrW(), ScrH(), 2 ^ 7 )
+    --draw.initTextured( ScrW(), ScrH(), 2 ^ 6.5 )
 
     frameEnd()
 end
 
-local nTargetDT = .017
+local nTargetDT = 1 / 60
 
 local function loop()
     frameBegin()
@@ -103,7 +107,7 @@ local function loop()
     -- GUI
     gui.think( nTime, nFrameTime )
 
-    do -- Fps
+    do
         local nSize = ScrW( .02 )
         draw.setFontSize( nSize )
         draw.text( round( 1 / nFrameTime ), 0, nSize )
