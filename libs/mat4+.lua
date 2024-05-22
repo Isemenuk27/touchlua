@@ -197,6 +197,10 @@ function mat4rotateZ( m, nA )
     return mat4set( m, nC, -nS, 0, 0, nS, nC, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 )
 end
 
+function mat4setAngles( m, vA )
+
+end
+
 local vTemp = vec3()
 
 function mat4lookAt( m, vOrigin, vNormal, vUp, vForward, vRight )
