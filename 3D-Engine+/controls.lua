@@ -118,7 +118,7 @@ local function createControls()
     local function setupMD( nTime, nFrameTime, tMD, tMDPrev )
         vec3set( tMD.vWishDir, nNX, nNY, 0 )
         local nS = math.pi / ScrW()
-        vec2add( tMD.vViewAngle, nDY * nS, nDX * -nS )
+        vec2add( tMD.vViewAngle, nDY * -nS, nDX * nS )
         tMD.nSpeed = nF
 
         if ( gForward:HeldBy() ) then
