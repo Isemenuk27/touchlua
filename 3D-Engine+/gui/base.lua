@@ -172,6 +172,7 @@ end
 
 -- Called when frame directly pressed
 function cBase:OnCursorPress( cCursor )
+    self:SetState( WINDOW_SELECTED )
     return
 end
 
@@ -187,6 +188,7 @@ end
 
 -- Called when linked cursor stop's holding it
 function cBase:OnCursorRelease( cCursor )
+    self:SetState( WINDOW_ACTIVE )
     return
 end
 
