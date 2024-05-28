@@ -1,8 +1,6 @@
-if ( package.pathinit ) then package.path = package.pathinit end
-package.path = package.path .. ";../?.lua"
 bInitialized = true
-sHomeDir = ""
-local sFolder = "3D-Engine+"
+sHomeDir = sHomeDir or ""
+sFolder = "3D-Engine+"
 
 local tRequirements = {
     "libs/string",
@@ -28,8 +26,9 @@ local tRequirements = {
     "libs/gui-framework",
     "libs/class",
 
-    --"libs/draw-textured",
     sFolder.."/raster",
+
+    sFolder.."/entity-manager",
 
     sFolder.."/camera",
     sFolder.."/render",
@@ -37,10 +36,15 @@ local tRequirements = {
 
     sFolder.."/content-load",
 
+    --GUI
     sFolder.."/gui/themes",
     sFolder.."/gui/base",
     sFolder.."/gui/frame",
     sFolder.."/gui/label",
+
+    --Classes
+    sFolder.."/entities/ent_base",
+    sFolder.."/entities/ent_prop",
 
     sFolder.."/movedata",
     sFolder.."/controls",
@@ -51,7 +55,7 @@ local tRequirements = {
 local function requireEverything()
     bInitialized = true
     local sOldPath = package.path
-    package.path = ";../?.lua;../3D-Engine+/?.lua"
+    package.path = package.path .. ";../../?.lua;../?.lua;../3D-Engine+/?.lua;../../3D-Engine+/?.lua"
 
     for _, sFileName in ipairs( tRequirements ) do
 
@@ -69,6 +73,16 @@ local function requireEverything()
         end ]]--
     end
 
+    if ( sSceneFile ) then
+        dofile( sSceneFile )
+    else
+        dofile( "scenes/blank.lua" )
+    end
+
+    for _, sFileName in pairs( tAdditionalRequire or {} ) do
+        require( sFileName )
+    end
+
     package.path = sOldPath
 end
 
@@ -79,10 +93,6 @@ local function init()
     render.init() -- Initialize 3D
     RunCallback( "Init" )
     RunCallback( "PostInit" )
-
-    -- Actual width, actual height, virtual width
-    --draw.initTextured( ScrW(), ScrH(), 2 ^ 6.5 )
-
     frameEnd()
 end
 
@@ -92,12 +102,12 @@ local function loop()
     frameBegin()
     local nT = sys.gettime()
 
-    RunCallback( "Loop" )
-
     draw.clear( draw.black )
     draw.doevents()
 
     local nTime, nFrameTime = curtime(), deltatime()
+    RunCallback( "Loop", nTime, nFrameTime )
+
 
     movedata.think( nTime, nFrameTime )
 
