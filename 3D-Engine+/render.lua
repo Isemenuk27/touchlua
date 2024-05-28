@@ -5,7 +5,7 @@ end
 
 render = {}
 local mCurProj = mat3()
-local sReadFrom = "textures/"
+local sReadFrom = sHomeDir .. "textures/"
 
 --**************************************
 
@@ -108,7 +108,7 @@ function render.init()
     math.pi * .5, ScrW(), ScrH(),
     .1, 10 )
 
-    cam.setResolution( tCam, 2 ^ 7 )
+    cam.setResolution( tCam,2 ^ 6 )
     render.pushCamera( tCam )
 end
 
@@ -120,11 +120,13 @@ local tPoints = {
 }
 
 local mRotationY, mRotationX, mRotationZ = mat4(), mat4(), mat4()
-local mView, mViewProjection = mat4(), mat4()
+local mView, mViewProjection, mModelTransform = mat4(), mat4(), mat4()
+local mNormalTransform = mat4()
 local vFaceNormal, vDirToFace = vec3(), vec3()
 
 do
     local filltriangle = draw.filltriangle
+    local texturedTriangle = draw.texturedTriangle
     local nHScrW, nHScrH, nScrH
     local vCamPos, mProj
 
@@ -143,7 +145,6 @@ do
         return ( nOX + 1 ) * nHScrW, nScrH - ( nOY + 1 ) * nHScrH, nOZ,
         nOU * nOW, nOV * nOW, nOW
     end
-
 
     local vColor = vec3( 1, 1, 1 )
     vColor[4] = 1
@@ -199,139 +200,207 @@ do
 
         nHScrW, nHScrH, nScrH = tCam.nWidth * .5, tCam.nHeight * .5, tCam.nHeight
 
-        local tModel = mdl.get( "cube.mdl" )
-        draw.setTexture( render.getTexture(
-        "cat.bmp" ) )
+        local tDrawEnts = ents.getDrawable()
 
-        tTriangleList = {}
+        for nEntIndx = 1, #tDrawEnts do
+            local eEnt = tDrawEnts[nEntIndx]
+            local tModel = mdl.get( eEnt.sModel )
+            draw.setTexture( render.getTexture( eEnt.sTexture ) )
 
-        for nI = tModel.nFaceArrayOffset, tModel.nFaceArrayOffset + tModel.nFaceArrayLen, 6 do
-            local nVertexA, nVertexB, nVertexC = tModel[nI], tModel[nI+1], tModel[nI+2]
+            mat4identity( mModelTransform )
+            mat4identity( mNormalTransform )
+            mat4setTranslation( mModelTransform, eEnt.vPos )
+            --mat4setTranslation( mNormalTransform, eEnt.vPos )
 
-            -- Point of 3 vertecies
-            local nAX, nAY, nAZ, nBX, nBY, nBZ, nCX, nCY, nCZ =
-            tModel[nVertexA], tModel[nVertexA+1], tModel[nVertexA+2],
-            tModel[nVertexB], tModel[nVertexB+1], tModel[nVertexB+2],
-            tModel[nVertexC], tModel[nVertexC+1], tModel[nVertexC+2]
 
-            -- Normals is precomputed
-            local nNX, nNY, nNZ = tModel[nI+3], tModel[nI+4], tModel[nI+5]
-            vec3setc( vFaceNormal, nNX, nNY, nNZ )
+            mat4rotateX( mRotationX, eEnt.vAng[1] )
+            mat4rotateY( mRotationY, eEnt.vAng[2] )
+            mat4rotateZ( mRotationZ, eEnt.vAng[3] )
 
-            vec3setv( vDirToFace, vCamPos ) -- Direction to camera
-            vec3subc( vDirToFace, nAX, nAY, nAZ )
+            mat4mul( mModelTransform, mRotationY, mModelTransform )
+            mat4mul( mModelTransform, mRotationX, mModelTransform )
+            mat4mul( mModelTransform, mRotationZ, mModelTransform )
 
-            -- Backface culling
-            if ( vec3dot( vDirToFace, vFaceNormal ) < 0 ) then
-                goto skip
-            end
+            -- WHY THE FUCK THEY SHOULD ROTATE OPOSSITE??!?
+            mat4rotateX( mRotationX, -eEnt.vAng[1] )
+            mat4rotateY( mRotationY, -eEnt.vAng[2] )
+            mat4rotateZ( mRotationZ, -eEnt.vAng[3] )
 
-            pushTriangle( nAX, nAY, nAZ,
-            nBX, nBY, nBZ,
-            nCX, nCY, nCZ,
-            nNX, nNY, nNZ,
-            tModel[nVertexA+3], tModel[nVertexA+4],
-            tModel[nVertexB+3], tModel[nVertexB+4],
-            tModel[nVertexC+3], tModel[nVertexC+4] )
+            mat4mul( mNormalTransform, mRotationY, mNormalTransform )
+            mat4mul( mNormalTransform, mRotationX, mNormalTransform )
+            mat4mul( mNormalTransform, mRotationZ, mNormalTransform )
 
-            ::skip::
-        end
+            mat4quickInverse( mNormalTransform, mNormalTransform )
+            mat4transpose( mNormalTransform, mNormalTransform )
 
-        local nI = 1 - 18
+            tTriangleList = {}
 
-        while ( true ) do
-            nI = nI + 18
+            for nI = tModel.nFaceArrayOffset, tModel.nFaceArrayOffset + tModel.nFaceArrayLen, 6 do
+                local nVertexA, nVertexB, nVertexC = tModel[nI], tModel[nI+1], tModel[nI+2]
 
-            if ( not tTriangleList[nI] ) then
-                break
-            end
+                -- Point of 3 vertecies
+                local nAX, nAY, nAZ, nBX, nBY, nBZ, nCX, nCY, nCZ =
+                tModel[nVertexA], tModel[nVertexA+1], tModel[nVertexA+2],
+                tModel[nVertexB], tModel[nVertexB+1], tModel[nVertexB+2],
+                tModel[nVertexC], tModel[nVertexC+1], tModel[nVertexC+2]
 
-            local nAX, nAY, nAZ, nBX, nBY, nBZ, nCX, nCY, nCZ,
-            nNX, nNY, nNZ, nAU, nAV, nBU, nBV, nCU, nCV = table.unpack( tTriangleList, nI, nI + 17 )
+                --Transform that shit
+                local nR0, nR1, nR2, nR3 = mModelTransform[0], mModelTransform[1], mModelTransform[2], mModelTransform[3]
 
-            for nI = 1, #tClipPlanes, 2 do
-                -- Number of points in front of plane
-                local vOrigin, vNormal = tClipPlanes[nI], tClipPlanes[nI+1]
-                local bA, bB, bC = trianglePlane( nAX, nAY, nAZ, nBX, nBY, nBZ, nCX, nCY, nCZ, vOrigin, vNormal )
+                local nAW, nBW, nCW =
+                1 / ( nAX * nR0[3] + nAY * nR1[3] + nAZ * nR2[3] + nR3[3] ),
+                1 / ( nBX * nR0[3] + nBY * nR1[3] + nBZ * nR2[3] + nR3[3] ),
+                1 / ( nCX * nR0[3] + nCY * nR1[3] + nCZ * nR2[3] + nR3[3] )
 
-                if ( bA and bB and bC ) then
-                    goto skip -- Triangle fully behind the plane, skip it
-                elseif ( not ( bA or bB or bC ) ) then
-                    --Triangle in bounds, skip any cliping
-                else
-                    local nC = ( bA and 1 or 0 ) + ( bB and 1 or 0 ) + ( bC and 1 or 0 )
-                    local nOX, nOY, nOZ, nNX, nNY, nNZ = vOrigin[1], vOrigin[2], vOrigin[3], vNormal[1], vNormal[2], vNormal[3]
+                nAX, nAY, nAZ, nBX, nBY, nBZ, nCX, nCY, nCZ =
+                ( nAX * nR0[0] + nAY * nR1[0] + nAZ * nR2[0] + nR3[0] ) * nAW,
+                ( nAX * nR0[1] + nAY * nR1[1] + nAZ * nR2[1] + nR3[1] ) * nAW,
+                ( nAX * nR0[2] + nAY * nR1[2] + nAZ * nR2[2] + nR3[2] ) * nAW,
+                ( nBX * nR0[0] + nBY * nR1[0] + nBZ * nR2[0] + nR3[0] ) * nBW,
+                ( nBX * nR0[1] + nBY * nR1[1] + nBZ * nR2[1] + nR3[1] ) * nBW,
+                ( nBX * nR0[2] + nBY * nR1[2] + nBZ * nR2[2] + nR3[2] ) * nBW,
+                ( nCX * nR0[0] + nCY * nR1[0] + nCZ * nR2[0] + nR3[0] ) * nCW,
+                ( nCX * nR0[1] + nCY * nR1[1] + nCZ * nR2[1] + nR3[1] ) * nCW,
+                ( nCX * nR0[2] + nCY * nR1[2] + nCZ * nR2[2] + nR3[2] ) * nCW
 
-                    local nXS, nYS, nZS, nXE0, nYE0, nZE0, nXE1, nYE1, nZE1,
-                    nU0, nV0, nU1, nV1, nU2, nV2
+                -- Normals are precomputed
+                local nNX, nNY, nNZ = tModel[nI+3], tModel[nI+4], tModel[nI+5]
 
-                    local bClip2 = nC == 1
+                local nR0, nR1, nR2, nR3 = mNormalTransform[0], mNormalTransform[1], mNormalTransform[2], mNormalTransform[3]
 
-                    if ( bA == bClip2 ) then
-                        nXS, nYS, nZS = nAX, nAY, nAZ
-                        nU0, nV0, nU1, nV1, nU2, nV2 =
-                        nAU, nAV, nBU, nBV, nCU, nCV
-                        nXE0, nYE0, nZE0 = nBX, nBY, nBZ
-                        nXE1, nYE1, nZE1 = nCX, nCY, nCZ
-                    elseif ( bB == bClip2 ) then
-                        nXS, nYS, nZS = nBX, nBY, nBZ
-                        nU0, nV0, nU1, nV1, nU2, nV2 =
-                        nBU, nBV, nAU, nAV, nCU, nCV
-                        nXE0, nYE0, nZE0 = nAX, nAY, nAZ
-                        nXE1, nYE1, nZE1 = nCX, nCY, nCZ
-                    else
-                        nU0, nV0, nU1, nV1, nU2, nV2 =
-                        nCU, nCV, nAU, nAV, nBU, nBV
-                        nXS, nYS, nZS = nCX, nCY, nCZ
-                        nXE0, nYE0, nZE0 = nAX, nAY, nAZ
-                        nXE1, nYE1, nZE1 = nBX, nBY, nBZ
-                    end
+                nNX, nNY, nNZ = --Do a 3x3
+                ( nR0[0] * nNX + nR0[1] * nNY + nR0[2] * nNZ ),
+                ( nR1[0] * nNX + nR1[1] * nNY + nR1[2] * nNZ ),
+                ( nR2[0] * nNX + nR2[1] * nNY + nR2[2] * nNZ )
 
-                    if ( bClip2 ) then
-                        local nX0, nY0, nZ0, nT0 = planeLineIntersection( nOX, nOY, nOZ, nNX, nNY, nNZ, nXS, nYS, nZS, nXE0, nYE0, nZE0 )
-                        local nX1, nY1, nZ1, nT1 = planeLineIntersection( nOX, nOY, nOZ, nNX, nNY, nNZ, nXS, nYS, nZS, nXE1, nYE1, nZE1 )
+                --[[
+                local v0 = vec3( nAX, nAY, nAZ )
+                vec3add( v0, nBX, nBY, nBZ )
+                vec3add( v0, nCX, nCY, nCZ )
+                vec3mul( v0, 1/3 )
+                local v1 = vec3add( vec3( nNX, nNY, nNZ ), v0 )
 
-                        local nNU0, nNV0 = nU0 + ( nU1 - nU0 ) * nT0, nV0 + ( nV1 - nV0 ) * nT0
-                        local nNU1, nNV1 = nU0 + ( nU2 - nU0 ) * nT1, nV0 + ( nV2 - nV0 ) * nT1
+                local x1, y1 = toScreen( v0, mViewProjection )
+                local x2, y2 = toScreen( v1, mViewProjection )
+                draw.line( x1, y1, x2, y2 )
+]]--
+                -- Backface culling
 
-                        pushTriangle( nXE0, nYE0, nZE0, nXE1, nYE1, nZE1, nX0, nY0, nZ0, nNX, nNY, nNZ,
-                        nU1, nV1, nU2, nV2, nNU0, nNV0  )
-                        pushTriangle( nX1, nY1, nZ1, nXE1, nYE1, nZE1, nX0, nY0, nZ0, nNX, nNY, nNZ,
-                        nNU1, nNV1, nU2, nV2, nNU0, nNV0  )
-                    else
-                        local nX0, nY0, nZ0, nT0 = planeLineIntersection( nOX, nOY, nOZ, nNX, nNY, nNZ, nXS, nYS, nZS, nXE0, nYE0, nZE0 )
-                        local nX1, nY1, nZ1, nT1 = planeLineIntersection( nOX, nOY, nOZ, nNX, nNY, nNZ, nXS, nYS, nZS, nXE1, nYE1, nZE1 )
-
-                        local nNU0, nNV0 = nU0 + ( nU1 - nU0 ) * nT0, nV0 + ( nV1 - nV0 ) * nT0
-                        local nNU1, nNV1 = nU0 + ( nU2 - nU0 ) * nT1, nV0 + ( nV2 - nV0 ) * nT1
-
-                        pushTriangle( nXS, nYS, nZS, nX0, nY0, nZ0, nX1, nY1, nZ1, nNX, nNY, nNZ,
-                        nU0, nV0, nNU0, nNV0, nNU1, nNV1 )
-                    end
-
+                if (
+                ( ( nAX - vCamPos[1] ) * nNX ) +
+                ( ( nAX - vCamPos[2] ) * nNY ) +
+                ( ( nAX - vCamPos[3] ) * nNZ ) > 0 ) then
                     goto skip
-                end -- if end
-            end -- clip loop end
+                end
 
-            do
-                --Crazy shit
-                local nX1, nY1, nZ1, nU1, nV1, nW1 = toScreenC( nAX, nAY, nAZ, nAU, nAV )
-                local nX2, nY2, nZ2, nU2, nV2, nW2 = toScreenC( nBX, nBY, nBZ, nBU, nBV )
-                local nX3, nY3, nZ3, nU3, nV3, nW3 = toScreenC( nCX, nCY, nCZ, nCU, nCV )
+                pushTriangle( nAX, nAY, nAZ,
+                nBX, nBY, nBZ,
+                nCX, nCY, nCZ,
+                nNX, nNY, nNZ,
+                tModel[nVertexA+3], tModel[nVertexA+4],
+                tModel[nVertexB+3], tModel[nVertexB+4],
+                tModel[nVertexC+3], tModel[nVertexC+4] )
 
-                --[[ ]]
-                draw.texturedTriangle(
-                nX1, nY1, nU1, nV1, nW1,
-                nX2, nY2, nU2, nV2, nW2,
-                nX3, nY3, nU3, nV3, nW3 ) --]]
-
-                --math.randomseed( nI )
-                --vec3setc( vColor, rand( 0, 1 ), rand( 0, 1 ), rand( 0, 1 ) )
-                --filltriangle( nX1, nY1, nX2, nY2, nX3, nY3, vColor )
+                ::skip::
             end
 
-            ::skip::
-        end -- while end
+            local nI = 1 - 18
+
+            while ( true ) do
+                nI = nI + 18
+
+                if ( not tTriangleList[nI] ) then
+                    break
+                end
+
+                local nAX, nAY, nAZ, nBX, nBY, nBZ, nCX, nCY, nCZ,
+                nNX, nNY, nNZ, nAU, nAV, nBU, nBV, nCU, nCV = table.unpack( tTriangleList, nI, nI + 17 )
+
+                for nI = 1, #tClipPlanes, 2 do
+                    -- Number of points in front of plane
+                    local vOrigin, vNormal = tClipPlanes[nI], tClipPlanes[nI+1]
+                    local bA, bB, bC = trianglePlane( nAX, nAY, nAZ, nBX, nBY, nBZ, nCX, nCY, nCZ, vOrigin, vNormal )
+
+                    if ( bA and bB and bC ) then
+                        goto skip -- Triangle fully behind the plane, skip it
+                    elseif ( not ( bA or bB or bC ) ) then
+                        --Triangle in bounds, skip any cliping
+                    else
+                        local nC = ( bA and 1 or 0 ) + ( bB and 1 or 0 ) + ( bC and 1 or 0 )
+                        local nOX, nOY, nOZ, nNX, nNY, nNZ = vOrigin[1], vOrigin[2], vOrigin[3], vNormal[1], vNormal[2], vNormal[3]
+
+                        local nXS, nYS, nZS, nXE0, nYE0, nZE0, nXE1, nYE1, nZE1,
+                        nU0, nV0, nU1, nV1, nU2, nV2
+
+                        local bClip2 = nC == 1
+
+                        if ( bA == bClip2 ) then
+                            nXS, nYS, nZS = nAX, nAY, nAZ
+                            nU0, nV0, nU1, nV1, nU2, nV2 =
+                            nAU, nAV, nBU, nBV, nCU, nCV
+                            nXE0, nYE0, nZE0 = nBX, nBY, nBZ
+                            nXE1, nYE1, nZE1 = nCX, nCY, nCZ
+                        elseif ( bB == bClip2 ) then
+                            nXS, nYS, nZS = nBX, nBY, nBZ
+                            nU0, nV0, nU1, nV1, nU2, nV2 =
+                            nBU, nBV, nAU, nAV, nCU, nCV
+                            nXE0, nYE0, nZE0 = nAX, nAY, nAZ
+                            nXE1, nYE1, nZE1 = nCX, nCY, nCZ
+                        else
+                            nU0, nV0, nU1, nV1, nU2, nV2 =
+                            nCU, nCV, nAU, nAV, nBU, nBV
+                            nXS, nYS, nZS = nCX, nCY, nCZ
+                            nXE0, nYE0, nZE0 = nAX, nAY, nAZ
+                            nXE1, nYE1, nZE1 = nBX, nBY, nBZ
+                        end
+
+                        if ( bClip2 ) then
+                            local nX0, nY0, nZ0, nT0 = planeLineIntersection( nOX, nOY, nOZ, nNX, nNY, nNZ, nXS, nYS, nZS, nXE0, nYE0, nZE0 )
+                            local nX1, nY1, nZ1, nT1 = planeLineIntersection( nOX, nOY, nOZ, nNX, nNY, nNZ, nXS, nYS, nZS, nXE1, nYE1, nZE1 )
+
+                            local nNU0, nNV0 = nU0 + ( nU1 - nU0 ) * nT0, nV0 + ( nV1 - nV0 ) * nT0
+                            local nNU1, nNV1 = nU0 + ( nU2 - nU0 ) * nT1, nV0 + ( nV2 - nV0 ) * nT1
+
+                            pushTriangle( nXE0, nYE0, nZE0, nXE1, nYE1, nZE1, nX0, nY0, nZ0, nNX, nNY, nNZ,
+                            nU1, nV1, nU2, nV2, nNU0, nNV0  )
+                            pushTriangle( nX1, nY1, nZ1, nXE1, nYE1, nZE1, nX0, nY0, nZ0, nNX, nNY, nNZ,
+                            nNU1, nNV1, nU2, nV2, nNU0, nNV0  )
+                        else
+                            local nX0, nY0, nZ0, nT0 = planeLineIntersection( nOX, nOY, nOZ, nNX, nNY, nNZ, nXS, nYS, nZS, nXE0, nYE0, nZE0 )
+                            local nX1, nY1, nZ1, nT1 = planeLineIntersection( nOX, nOY, nOZ, nNX, nNY, nNZ, nXS, nYS, nZS, nXE1, nYE1, nZE1 )
+
+                            local nNU0, nNV0 = nU0 + ( nU1 - nU0 ) * nT0, nV0 + ( nV1 - nV0 ) * nT0
+                            local nNU1, nNV1 = nU0 + ( nU2 - nU0 ) * nT1, nV0 + ( nV2 - nV0 ) * nT1
+
+                            pushTriangle( nXS, nYS, nZS, nX0, nY0, nZ0, nX1, nY1, nZ1, nNX, nNY, nNZ,
+                            nU0, nV0, nNU0, nNV0, nNU1, nNV1 )
+                        end
+
+                        goto skip
+                    end -- if end
+                end -- clip loop end
+
+                do
+                    --Crazy shit
+                    local nX1, nY1, nZ1, nU1, nV1, nW1 = toScreenC( nAX, nAY, nAZ, nAU, nAV )
+                    local nX2, nY2, nZ2, nU2, nV2, nW2 = toScreenC( nBX, nBY, nBZ, nBU, nBV )
+                    local nX3, nY3, nZ3, nU3, nV3, nW3 = toScreenC( nCX, nCY, nCZ, nCU, nCV )
+
+                    --[[ ]]
+                    texturedTriangle(
+                    nX1, nY1, nU1, nV1, nW1,
+                    nX2, nY2, nU2, nV2, nW2,
+                    nX3, nY3, nU3, nV3, nW3 ) --]]
+
+                    --math.randomseed( nI )
+                    --vec3setc( vColor, rand( 0, 1 ), rand( 0, 1 ), rand( 0, 1 ) )
+                    --filltriangle( nX1, nY1, nX2, nY2, nX3, nY3, vColor )
+                end
+
+                ::skip::
+            end -- while end
+
+        end--model loop
     end -- function end
 end -- do end
 
