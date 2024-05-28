@@ -19,6 +19,7 @@ end
 
 --************************************
 
+local tDepth = {}
 local tDrawTexture = false
 local nTextureWidth, nTextureHeight = 0, 0
 
@@ -33,12 +34,19 @@ function draw.getTexture()
     return tDrawTexture
 end
 
-local nWM0, nHM0, nWM1, nHM1
+local nWM0, nHM0, nWM1, nHM1, nWidth
+local bFlipDepth = true
 
 --Width of screen, Height, New "visual" width
 function draw.initTextured( nW, nH, nVW )
+    nWidth = nW
+    bFlipDepth = not bFlipDepth
     nWM0, nHM0 = nW / nVW, nH / ( nVW * ( nH / nW ) )
     nWM1, nHM1 = 1 / nWM0, 1 / nHM0
+
+    for k, _ in pairs( tDepth ) do
+        tDepth[k] = 0
+    end
 end
 
 local getTextureColor do
@@ -92,12 +100,25 @@ local function triFlat( nStep,
         local nU, nV, nW = nUA, nVA, nWA
 
         for nX = floor( nX0 ), floor( nX1 ), ( nDiffX < 0 and -1 or 1 ) do
-            local nFirstIndex = ( ( floor( ( nU / nW ) * nTextureWidth ) % nTextureWidth ) +
-            ( ( floor( ( nV / nW ) * nTextureHeight ) % nTextureHeight ) * nTextureWidth ) ) * 3
+            local nIndex = nX + nY * nWidth
+            local nD = tDepth[nIndex] or 0
 
-            tC[1], tC[2], tC[3] = tDrawTexture[nFirstIndex] or 1, tDrawTexture[nFirstIndex+1] or 1, tDrawTexture[nFirstIndex+2] or 1
+            --[[ if ( bFlipDepth and
+            ( ( nD >= 0 ) or ( nW > -nD ) ) or
+            ( ( nD <= 0 ) or ( nW > nD ) )
+            ) then ]]
+            --if ( bFlipDepth and ( -nW < -( tDepth[nIndex] or 0 ) )
+            --or ( nW > ( tDepth[nIndex] or 0 ) ) ) then
+            if ( nW > ( tDepth[nIndex] or 0 ) ) then
+                local nFirstIndex = ( ( floor( ( nU / nW ) * nTextureWidth ) % nTextureWidth ) +
+                ( ( floor( ( nV / nW ) * nTextureHeight ) % nTextureHeight ) * nTextureWidth ) ) * 3
 
-            fillrect( nX * nWM0, nRY0, ( nX + 1 ) * nWM0, nRY1, tC )
+                tC[1], tC[2], tC[3] = tDrawTexture[nFirstIndex] or 1, tDrawTexture[nFirstIndex+1] or 1, tDrawTexture[nFirstIndex+2] or 1
+
+                fillrect( nX * nWM0, nRY0, ( nX + 1 ) * nWM0, nRY1, tC )
+                tDepth[nIndex] = nW
+            end
+
             nU, nV, nW = nU - nSU, nV - nSV, nW - nSW
         end
 
