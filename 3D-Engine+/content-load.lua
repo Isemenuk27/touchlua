@@ -6,6 +6,8 @@ end
 local tTextures = {
     "cat.bmp",
     "cat2.bmp",
+    --"bird.bmp",
+    "bird2.bmp",
     --"land2.bmp"
 }
 
